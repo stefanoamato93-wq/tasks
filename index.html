@@ -77,7 +77,14 @@
   .gh.late { color:var(--late); }
   .gh.drop { outline:2px dashed var(--accent); border-radius:6px; }
   ul.tasks { list-style:none; margin:0; padding:0; background:var(--card); border-radius:12px; overflow:hidden; }
-  ul.tasks > li { display:flex; align-items:flex-start; gap:12px; padding:10px 12px; border-top:1px solid var(--line); cursor:pointer; }
+  ul.tasks > li { position:relative; overflow:hidden; border-top:1px solid var(--line); cursor:pointer; }
+  ul.tasks > li.empty { padding:16px; }
+  .rowInner { position:relative; z-index:1; display:flex; align-items:flex-start; gap:12px; padding:10px 12px; background:var(--card); transition:transform .2s; }
+  .swipeDel { position:absolute; top:0; right:0; bottom:0; width:96px; border:0; border-radius:0; background:var(--danger); color:#fff; font-weight:600; display:none; }
+  @media (max-width:700px) {
+    .rowInner .del { display:none; }      /* phone: no one-tap ✕, swipe left instead */
+    .swipeDel { display:block; }
+  }
   ul.tasks > li:first-child { border-top:0; }
   ul.tasks > li.dragging { opacity:.4; }
   .ring { width:22px; height:22px; border-radius:50%; border:2px solid var(--c, var(--accent)); flex-shrink:0; margin-top:1px; display:flex; align-items:center; justify-content:center; background:none; padding:0; cursor:pointer; }
@@ -173,7 +180,7 @@
   <main>
     <header>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v10</span>
+      <span class="ver">v11</span>
     </header>
     <div class="dayNav" id="dayNav">
       <button class="ghost navArrow" id="dayPrev">‹</button>
@@ -800,13 +807,20 @@ function row(r, opts = {}) {
     const al = document.createElement("li"); al.append(add); ul.append(al);
     body.append(ul);
   }
-  li.append(rg, body);
+  // row content sits in .rowInner so it can slide left over the red "Elimina" (phone swipe)
+  const inner = document.createElement("div"); inner.className = "rowInner";
+  inner.append(rg, body);
+  li.append(inner);
   if (!opts.future) {
     const del = document.createElement("button"); del.className = "del"; del.title = "Elimina"; del.textContent = "✕";
     del.onclick = e => { e.stopPropagation(); deleteTask(r.id); };
-    li.append(del);
+    inner.append(del);
+    const sw = document.createElement("button"); sw.className = "swipeDel"; sw.textContent = "Elimina";
+    sw.onclick = e => { e.stopPropagation(); deleteTask(r.id); };
+    li.append(sw);
+    addRowSwipe(li, inner);
   }
-  li.onclick = () => openSheet(r.id);
+  li.onclick = () => { if (li.classList.contains("swiped")) { closeSwiped(); return; } openSheet(r.id); };
   if (!opts.future) {
     li.draggable = true;
     li.addEventListener("dragstart", e => { dragId = r.id; li.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", r.id); });
@@ -831,6 +845,38 @@ function toggle(r, checked) {
   }
   update(tRef(r.id), checked ? { done: true, doneAt: Date.now() } : { done: false, doneAt: null });
   if (checked) toast("✓ Completato");
+}
+
+// ---------- phone: swipe a task left to show "Elimina", tap it to confirm ----------
+let rowSwipeUsed = false;      // tells the day-swipe handler to ignore this gesture
+let openRow = null;
+function closeSwiped() { if (openRow) { openRow.classList.remove("swiped"); openRow.querySelector(".rowInner").style.transform = ""; openRow = null; } }
+function addRowSwipe(li, inner) {
+  let sx = null, sy = null, dx = 0, horiz = null;
+  li.addEventListener("touchstart", e => {
+    if (e.touches.length !== 1) return;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; horiz = null;
+    if (openRow && openRow !== li) closeSwiped();
+  }, { passive: true });
+  li.addEventListener("touchmove", e => {
+    if (sx === null) return;
+    const mx = e.touches[0].clientX - sx, my = e.touches[0].clientY - sy;
+    if (horiz === null && (Math.abs(mx) > 8 || Math.abs(my) > 8)) horiz = Math.abs(mx) > Math.abs(my) && mx < 0 || li.classList.contains("swiped");
+    if (!horiz) return;
+    rowSwipeUsed = true;
+    const base = li.classList.contains("swiped") ? -96 : 0;
+    dx = Math.min(0, Math.max(-120, base + mx));
+    inner.style.transition = "none";
+    inner.style.transform = `translateX(${dx}px)`;
+  }, { passive: true });
+  li.addEventListener("touchend", () => {
+    if (sx === null) return;
+    sx = null;
+    inner.style.transition = "";
+    if (!horiz) return;
+    if (dx < -50) { li.classList.add("swiped"); inner.style.transform = "translateX(-96px)"; openRow = li; }
+    else { li.classList.remove("swiped"); inner.style.transform = ""; if (openRow === li) openRow = null; }
+  });
 }
 
 let toastT;
@@ -916,8 +962,9 @@ $("dayPrev").onclick = () => shiftDay(-1);
 $("dayNext").onclick = () => shiftDay(1);
 $("dayToday").onclick = () => { selDay = null; renderAll(); };
 let tx = null, ty = null;
-document.querySelector("main").addEventListener("touchstart", e => { if (e.touches.length !== 1) return; tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+document.querySelector("main").addEventListener("touchstart", e => { rowSwipeUsed = false; if (e.touches.length !== 1) return; tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
 document.querySelector("main").addEventListener("touchend", e => {
+  if (rowSwipeUsed) { rowSwipeUsed = false; tx = null; return; }   // that swipe opened a task's "Elimina"
   if (tx === null || sheetId) return;
   const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
   tx = null;
