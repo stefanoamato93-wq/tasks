@@ -36,6 +36,18 @@
     .dayNav { position:sticky; top:0; z-index:5; background:var(--bg); margin:0 -16px 10px; padding:10px 16px; border-bottom:1px solid var(--line); }
     .dayNav .today { font-size:16px; color:var(--text); }
   }
+  .chartNote { color:var(--muted); font-size:13px; margin:0 2px 12px; }
+  .chart { display:flex; align-items:flex-end; gap:4px; height:240px; background:var(--card); border-radius:12px; padding:28px 10px 8px; overflow-x:auto; }
+  .chart .col { flex:1 0 26px; display:flex; flex-direction:column; align-items:center; height:100%; cursor:pointer; }
+  .chart .col:hover .stack { filter:brightness(1.2); }
+  .chart .n { font-size:12px; color:var(--text); margin-bottom:3px; }
+  .chart .stack { width:100%; max-width:34px; display:flex; flex-direction:column-reverse; border-radius:5px 5px 0 0; overflow:hidden; margin-top:auto; }
+  .chart .lbl { font-size:11px; color:var(--muted); margin-top:5px; text-align:center; line-height:1.1; white-space:nowrap; }
+  .chart .col.we .lbl { color:#5b5b60; }
+  .chart .col.now .lbl { color:var(--accent); font-weight:700; }
+  .chart .col.late .lbl { color:var(--late); }
+  .chartLegend { display:flex; flex-wrap:wrap; gap:6px 14px; margin:12px 4px; font-size:13px; color:var(--muted); }
+  .chartLegend span { display:inline-flex; align-items:center; gap:6px; }
   .doneBar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 2px 12px; }
   .doneBar span { color:var(--muted); font-size:14px; }
   .doneBar button { white-space:nowrap; padding:7px 14px; border-color:var(--danger); }
@@ -187,13 +199,13 @@
   <main>
     <header>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v15</span>
+      <span class="ver">v16</span>
     </header>
     <div class="dayNav" id="dayNav">
+      <button class="ghost navArrow" id="dayToday" style="font-size:13px;min-width:56px">Oggi</button>
       <button class="ghost navArrow" id="dayPrev">‹</button>
       <span class="today" id="todayLabel"></span>
       <button class="ghost navArrow" id="dayNext">›</button>
-      <button class="ghost navArrow" id="dayToday" style="font-size:13px">Oggi</button>
     </div>
     <div class="row" style="margin-bottom:10px;flex-wrap:nowrap">
       <input type="search" id="q" placeholder="🔍 Cerca task…" autocomplete="off" style="flex:1">
@@ -217,6 +229,12 @@
     </div>
 
     <div id="listView"><div class="empty">Carico…</div></div>
+
+    <div id="chartView" class="hidden">
+      <div class="chartNote">Task aperti per giorno, prossime 3 settimane (ripetizioni incluse). Tocca una barra per aprire il giorno.</div>
+      <div class="chart" id="chart"></div>
+      <div class="chartLegend" id="chartLegend"></div>
+    </div>
 
     <div id="doneView" class="hidden">
       <div class="doneBar">
@@ -516,7 +534,14 @@ onValue(ref(db, "taskApp/settings"), snap => { settings = snap.val() || {}; rend
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const isSpecial = v => v.startsWith("@");
-const VIEW_NAMES = { "@today": "Oggi", "@tomorrow": "Domani", "@calendar": "Calendario", "@all": "Tutti", "@done": "Completati" };
+const VIEW_NAMES = { "@today": "Oggi", "@tomorrow": "Domani", "@calendar": "Calendario", "@all": "Tutti", "@done": "Completati", "@chart": "Carico per giorno" };
+// open the day page ("Oggi" view moved to day k)
+function openDay(k) {
+  view = "@today"; localStorage.setItem("tasksView", view);
+  selDay = k === todayStr() ? null : k;
+  $("nav").classList.remove("open");
+  renderAll(); window.scrollTo(0, 0);
+}
 
 function setView(v) {
   if (v === "@lists") { $("nav").classList.add("open"); return; }
@@ -532,16 +557,18 @@ function renderAll() {
   renderLists();
   $("calendar").classList.toggle("hidden", view !== "@calendar");
   $("doneView").classList.toggle("hidden", view !== "@done");
-  $("listView").classList.toggle("hidden", view === "@calendar" || view === "@done");
-  $("addForm").classList.toggle("hidden", view === "@done");
+  $("chartView").classList.toggle("hidden", view !== "@chart");
+  $("listView").classList.toggle("hidden", view === "@calendar" || view === "@done" || view === "@chart");
+  $("addForm").classList.toggle("hidden", view === "@done" || view === "@chart");
   if (q) {
     // search covers every task (open and completed), whatever the view
-    $("calendar").classList.add("hidden"); $("doneView").classList.add("hidden");
+    $("calendar").classList.add("hidden"); $("doneView").classList.add("hidden"); $("chartView").classList.add("hidden");
     $("listView").classList.remove("hidden");
     renderSearch();
   }
   else if (view === "@calendar") renderCalendar();
   else if (view === "@done") renderDone();
+  else if (view === "@chart") renderChart();
   else renderTasks();
   document.querySelectorAll("#bar button").forEach(b => b.classList.toggle("on", b.dataset.v === view));
   const h = $("viewTitle"); h.innerHTML = "";
@@ -553,7 +580,8 @@ function renderAll() {
   const onDay = view === "@today" && !q;
   $("dayNav").classList.toggle("off", !onDay);
   $("todayLabel").textContent = longDate(onDay ? keyToDate(curDay()) : new Date());
-  $("dayToday").classList.toggle("hidden", !selDay);
+  // "Oggi" sits on the left and only fades, so ‹ › never move under the finger
+  $("dayToday").style.visibility = selDay && onDay ? "visible" : "hidden";
   if (sheetId) renderSheet();
 }
 
@@ -571,6 +599,8 @@ function renderLists() {
   for (const [key, label, n] of special) ul.append(navItem(key, label, n));
   const sep = document.createElement("li"); sep.className = "sep"; ul.append(sep);
   names.forEach((name, i) => ul.append(navItem(name, name, counts[name] || 0, i, names)));
+  const sep2 = document.createElement("li"); sep2.className = "sep"; ul.append(sep2);
+  ul.append(navItem("@chart", "📊 Carico per giorno", ""));
   $("editListsBtn").textContent = editLists ? "✓ Fine" : "✏️ Modifica elenchi";
   $("newListBtn").classList.toggle("hidden", !editLists);
 }
@@ -751,6 +781,49 @@ function renderSearch() {
   for (const name of allLists()) {
     const items = hits.filter(r => listOf(r) === name);
     if (items.length) box.append(groupBlock("search|" + name, name, items, { color: colorOf(name), list: name }));
+  }
+}
+
+// ---------- bar chart: open tasks per day ----------
+const CHART_DAYS = 21;
+function renderChart() {
+  const today = startOfDay(new Date());
+  const end = new Date(today); end.setDate(end.getDate() + CHART_DAYS);
+  const occ = occurrencesBetween(today, end);
+  const late = rows.filter(r => !r.done && isLate(r) && dayDiff(dueDate(r)) < 0);
+  const cols = [{ key: "late", label: "In<br>ritardo", items: late, cls: "late" }];
+  for (let i = 0; i < CHART_DAYS; i++) {
+    const d = new Date(today); d.setDate(d.getDate() + i);
+    const k = dayKey(d);
+    cols.push({ key: k, label: (i === 0 ? "oggi" : WD[d.getDay()]) + "<br>" + d.getDate(), items: (occ[k] || []).map(it => it.r),
+      cls: (i === 0 ? "now" : "") + (d.getDay() === 0 || d.getDay() === 6 ? " we" : "") });
+  }
+  const max = Math.max(1, ...cols.map(c => c.items.length));
+  const box = $("chart"); box.innerHTML = "";
+  const used = new Set();
+  for (const c of cols) {
+    const col = document.createElement("div"); col.className = "col " + (c.cls || "");
+    col.title = c.items.length + " task";
+    const n = document.createElement("div"); n.className = "n"; n.textContent = c.items.length || "";
+    const stack = document.createElement("div"); stack.className = "stack";
+    stack.style.height = (c.items.length / max * 100) + "%";
+    // one coloured segment per category, in the user's order
+    for (const name of allLists()) {
+      const cnt = c.items.filter(r => listOf(r) === name).length;
+      if (!cnt) continue;
+      used.add(name);
+      const seg = document.createElement("div"); seg.style.background = colorOf(name); seg.style.flex = String(cnt);
+      stack.append(seg);
+    }
+    col.append(n, stack);
+    const l = document.createElement("div"); l.className = "lbl"; l.innerHTML = c.label; col.append(l);
+    col.onclick = () => openDay(c.key === "late" ? todayStr() : c.key);
+    box.append(col);
+  }
+  $("chartLegend").innerHTML = "";
+  for (const name of allLists()) if (used.has(name)) {
+    const s = document.createElement("span"); s.innerHTML = `<span class="dot" style="background:${colorOf(name)}"></span>${esc(name)}`;
+    $("chartLegend").append(s);
   }
 }
 
@@ -983,7 +1056,7 @@ function renderCalendar() {
     const dots = document.createElement("div"); dots.className = "dots";
     items.slice(0, 6).forEach(it => { const s = document.createElement("span"); s.className = "dot"; s.style.background = colorOf(listOf(it.r)); dots.append(s); });
     cell.append(dots);
-    cell.onclick = () => { calSel = k; renderAll(); };
+    cell.onclick = () => openDay(k);      // straight to that day's page
     dropTarget(cell, id => moveTaskToDay(id, k));
     grid.append(cell);
   }

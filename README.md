@@ -61,6 +61,7 @@ Shortcuts cannot read a reminder's repeat rule, so repeats are set by hand in th
 31 Oct 2026: the first full import sent dates as Italian text with the title stuck on (`1 nov 2026, 00:00Affitto`); all 184 were rewritten once to `YYYY-MM-DD[THH:MM]`.
 
 ## Changelog
+- v16 (31 Oct 2026): "📊 Carico per giorno" view (sidebar, below the categories): bar chart of open tasks per day for the next 21 days plus an "In ritardo" bar, bars stacked by category colour, repeats included; tap a bar to open that day. Tapping a calendar day now opens that day's page (`openDay`). Day bar: the "Oggi" button moved to the left and only fades in/out, so ‹ › stay put and can be tapped repeatedly.
 - v15 (31 Oct 2026): future-repeat circles look like the others (were dimmed); tapping one shows a toast instead of ticking. Task sheet date buttons add "Lunedì" / "Venerdì" = next Monday / Friday after today, keeping the time.
 - v14 (31 Oct 2026): repeat marker on task rows is a small grey "↻" text instead of the 🔁 emoji; future repeats just say "ripetizione futura".
 - v13 (31 Oct 2026): iPhone haptics fixed. A programmatic click on a hidden switch no longer ticks; Safari only ticks on a real tap on an `<input switch>`. `hapticTrigger(el)` lays an invisible switch label over: the round tick, "Aggiungi", the + button and the red "Elimina". Limits: the keyboard's Invio key and the full swipe cannot tick on iPhone (not taps); Android still vibrates via `navigator.vibrate`.
