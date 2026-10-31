@@ -185,7 +185,7 @@
 
   /* bottom bar (phone) */
   .bottom { display:none; }
-  .menuBtn, .navBack { display:none; }
+  .menuBtn, .navBack, .searchBtn { display:none; }
   @media (max-width:700px) {
     body { font-size:15px; }
     input, select, textarea { font-size:16px; }   /* 16px stops iPhone from zooming in on tap */
@@ -197,7 +197,8 @@
     nav { display:block; position:fixed; top:0; bottom:0; left:0; width:80%; max-width:300px; min-width:0; z-index:11; background:var(--card); padding:calc(16px + env(safe-area-inset-top)) 12px 16px; overflow:auto; transform:translateX(-105%); transition:transform .25s; }
     nav.open { transform:none; box-shadow:4px 0 24px rgba(0,0,0,.6); }
     nav.open + .navBack { display:block; position:fixed; inset:0; z-index:10; background:rgba(0,0,0,.5); }
-    /* phone: search box shows only after a pull down at the top */
+    .searchBtn { display:block; font-size:20px; padding:0 4px; line-height:1; }
+    /* phone: search box shows only after tapping the search icon */
     #searchRow { display:none !important; }
     body.searchOn #searchRow { display:flex !important; }
     .bottom { display:block; position:fixed; right:16px; bottom:calc(16px + env(safe-area-inset-bottom)); z-index:8; }
@@ -225,7 +226,8 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v21</span>
+      <span class="ver">v22</span>
+      <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
     <div class="dayNav" id="dayNav">
       <button class="ghost navArrow" id="dayToday" style="font-size:13px;min-width:56px">Oggi</button>
@@ -832,19 +834,14 @@ function dayTitle(k) {
 // ---------- search ----------
 let q = "";
 $("q").oninput = () => { q = $("q").value.trim().toLowerCase(); renderAll(); };
-// phone: pull down at the top shows the search box; scrolling down hides it again (if empty)
-{
-  const phone = () => matchMedia("(max-width:700px)").matches;
-  let pullY = null;
-  addEventListener("touchstart", e => { pullY = scrollY <= 0 && e.touches.length === 1 ? e.touches[0].clientY : null; }, { passive: true });
-  addEventListener("touchmove", e => {
-    if (pullY !== null && phone() && e.touches[0].clientY - pullY > 60) { document.body.classList.add("searchOn"); pullY = null; }
-  }, { passive: true });
-  addEventListener("scroll", () => {
-    if (phone() && scrollY > 80 && !q && document.activeElement !== $("q")) document.body.classList.remove("searchOn");
-  }, { passive: true });
-  $("q").addEventListener("blur", () => { if (!q) document.body.classList.remove("searchOn"); });
-}
+// phone: the search icon shows the search box; it hides again when left empty
+$("searchBtn").onclick = () => {
+  if (document.body.classList.contains("searchOn") && !q) { document.body.classList.remove("searchOn"); return; }
+  document.body.classList.add("searchOn");
+  $("q").focus();     // synchronous, so the phone keyboard opens
+};
+$("searchBtn").addEventListener("pointerdown", e => e.preventDefault());   // keep focus in the box
+$("q").addEventListener("blur", () => { if (!q) document.body.classList.remove("searchOn"); });
 function renderSearch() {
   const box = $("listView"); box.innerHTML = "";
   const words = q.split(/\s+/).filter(Boolean);
