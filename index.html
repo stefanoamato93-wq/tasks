@@ -103,6 +103,7 @@
   .t { word-break:break-word; }
   .meta { font-size:12px; color:var(--muted); display:flex; flex-wrap:wrap; gap:3px 10px; margin-top:2px; align-items:center; }
   .meta .late { color:var(--late); }
+  .meta .rep { opacity:.7; }
   .chip { border-radius:6px; padding:0 6px; color:#fff; font-size:11px; }
   .subBtn { border:0; background:var(--soft); color:#9db8ff; border-radius:6px; padding:1px 7px; font-size:12px; }
   ul.subs { list-style:none; margin:6px 0 0; padding:0; }
@@ -186,7 +187,7 @@
   <main>
     <header>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v13</span>
+      <span class="ver">v14</span>
     </header>
     <div class="dayNav" id="dayNav">
       <button class="ghost navArrow" id="dayPrev">‹</button>
@@ -695,7 +696,7 @@ function groupBlock(key, label, items, opts = {}) {
   frag.append(gh);
   if (!isCol) {
     const ul = document.createElement("ul"); ul.className = "tasks";
-    items.forEach(r => ul.append(row(r, futureIds.has(r.id) ? { future: true, when: "🔁 ripetizione futura" } : {})));
+    items.forEach(r => ul.append(row(r, futureIds.has(r.id) ? { future: true, when: "ripetizione futura" } : {})));
     frag.append(ul);
   }
   return frag;
@@ -788,7 +789,7 @@ function row(r, opts = {}) {
   const due = opts.when || fmtDue(r);
   if (due) { const s = document.createElement("span"); s.textContent = due; if (!r.done && !opts.future && isLate(r)) s.className = "late"; meta.append(s); }
   const rep = fmtRepeat(r.repeat);
-  if (rep) { const s = document.createElement("span"); s.textContent = "🔁 " + rep; meta.append(s); }
+  if (rep) { const s = document.createElement("span"); s.className = "rep"; s.textContent = "↻ " + rep; meta.append(s); }
   if (opts.showList) { const s = document.createElement("span"); s.className = "chip"; s.style.background = col; s.textContent = listOf(r); meta.append(s); }
   const { subs, text } = parseNotes(r.notes);
   const open = expanded.has(r.id);
@@ -990,7 +991,7 @@ function renderCalendar() {
   $("calDayTitle").textContent = WD_FULL[selDate.getDay()] + " " + sd + " " + MO_FULL[sm - 1];
   const ul = $("calDay"); ul.innerHTML = "";
   if (!selItems.length) ul.innerHTML = `<li class="empty">Niente in questo giorno</li>`;
-  selItems.forEach(it => ul.append(row(it.r, { future: it.future, showList: true, when: it.future ? "🔁 ripetizione futura" : "" })));
+  selItems.forEach(it => ul.append(row(it.r, { future: it.future, showList: true, when: it.future ? "ripetizione futura" : "" })));
 }
 const calShift = w => { calStart.setDate(calStart.getDate() + 7 * w); renderCalendar(); };
 $("calPrev").onclick = () => calShift(-4);
