@@ -164,7 +164,9 @@
   .sheet .sec { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:16px 0 6px; }
   .sheetHead { display:flex; gap:10px; align-items:center; position:sticky; top:-16px; margin:-16px -16px 0; padding:12px 16px; background:var(--card); z-index:2; border-bottom:1px solid var(--line); }
   .sheetHead .titleIn { flex:1; min-width:0; }
-  .sheet .titleIn { font-size:18px; font-weight:600; background:none; border:0; padding:4px 0; }
+  .sheet .titleIn { font-size:18px; font-weight:600; background:none; border:0; padding:4px 0; resize:none; overflow:hidden; line-height:1.3; font-family:inherit; }
+  .sheetHead { align-items:flex-start; }
+  .clearQ { flex:0 0 auto; padding:7px 12px; }
   .btns { display:flex; flex-wrap:wrap; gap:6px; }
   .btns button { padding:6px 10px; font-size:14px; }
   .btns button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
@@ -226,7 +228,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v23</span>
+      <span class="ver">v24</span>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
     <div class="dayNav" id="dayNav">
@@ -237,6 +239,7 @@
     </div>
     <div class="row" id="searchRow" style="margin-bottom:10px;flex-wrap:nowrap">
       <input type="search" id="q" placeholder="🔍 Cerca task…" autocomplete="off" style="flex:1">
+      <button class="clearQ hidden" id="clearQ">Annulla</button>
     </div>
 
     <form class="add" id="addForm">
@@ -305,7 +308,7 @@
 <div class="back hidden" id="sheetBack">
   <div class="sheet" id="sheet">
     <div class="sheetHead">
-      <input type="text" class="titleIn" id="sTitle">
+      <textarea class="titleIn" id="sTitle" rows="1"></textarea>
       <button class="primary" id="sClose">Fatto</button>
     </div>
 
@@ -833,7 +836,10 @@ function dayTitle(k) {
 
 // ---------- search ----------
 let q = "";
-$("q").oninput = () => { q = $("q").value.trim().toLowerCase(); renderAll(); };
+$("q").oninput = () => { q = $("q").value.trim().toLowerCase(); $("clearQ").classList.toggle("hidden", !q); renderAll(); };
+function exitSearch() { $("q").value = ""; q = ""; $("clearQ").classList.add("hidden"); $("q").blur(); document.body.classList.remove("searchOn"); renderAll(); window.scrollTo(0, 0); }
+$("clearQ").onclick = exitSearch;
+$("q").addEventListener("keydown", e => { if (e.key === "Escape") exitSearch(); });
 // phone: the search icon shows the search box; it hides again when left empty
 $("searchBtn").onclick = () => {
   if (document.body.classList.contains("searchOn") && !q) { document.body.classList.remove("searchOn"); return; }
@@ -1201,6 +1207,7 @@ function openSheet(id) {
   $("sNotes").value = parseNotes(r.notes).text;
   $("sNewSub").value = "";
   $("sheetBack").classList.remove("hidden");
+  fitTitle();
   renderSheet();
 }
 function closeSheet() { flushText(); sheetId = null; $("sheetBack").classList.add("hidden"); }
@@ -1325,6 +1332,10 @@ $("sNewSub").onkeydown = e => {
   $("sNewSub").value = "";
 };
 $("sTitle").onchange = flushText;
+// title box grows to show the whole name; Enter saves instead of a new line
+function fitTitle() { const t = $("sTitle"); t.style.height = "auto"; t.style.height = t.scrollHeight + "px"; }
+$("sTitle").addEventListener("input", () => { $("sTitle").value = $("sTitle").value.replace(/\n/g, " "); fitTitle(); });
+$("sTitle").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("sTitle").blur(); } });
 $("sNotes").onchange = flushText;
 $("sDup").onclick = () => {
   const r = cur(); if (!r) return;
