@@ -6,22 +6,26 @@ My own task list. Add tasks by voice with Siri on iPhone; they appear live on th
 
 - Live: https://stefanoamato93-wq.github.io/tasks/
 - Repo: `stefanoamato93-wq/tasks` (branch `main`, GitHub Pages)
-- Files: `index.html` (whole app), `firebase-config.js` (same Firebase project as Finance v2), icons + `manifest.webmanifest`.
+- Files: `index.html` (whole app, Firebase config inline), icons + `manifest.webmanifest`.
 
 ## Data
-Firestore, project `finance-stefano`, path `users/{uid}/tasks/{id}`:
+Firebase Realtime Database, project `groceries-d6616` (same as gym/grocery/calendar), node `taskApp/tasks/{id}`:
 `{ title, done, source: "web" | "siri", created }`.
-Existing Finance v2 rules cover it (owner uid only). Siri saves without `created`; the web app stamps it the first time it sees the task.
+Siri saves without `created`; the web app stamps it the first time it sees the task.
 
-## Sign-in
-- Web app: Google sign-in (same as Finance v2).
-- Siri: an email/password linked to the SAME Google account (one-time, from "Siri setup" in the app). Needs Email/Password turned on in Firebase console > Authentication > Sign-in method.
+**No sign-in.** Anyone with the URL can read/write, like the gym app. Do not store anything sensitive.
+
+The node must be open in the rules (Firebase console > `groceries-d6616` > Realtime Database > Rules). Add this line next to the existing ones, keep the others, then Publish:
+
+```json
+"taskApp": { ".read": true, ".write": true }
+```
 
 ## Siri Shortcut
-Recipe is shown in the app under "Siri setup" once linked:
-1. Ask for input.
-2. POST to Firebase Auth `signInWithPassword` -> `idToken`.
-3. POST the task JSON to the Firestore REST URL with `Authorization: Bearer <idToken>`.
+Recipe is also shown in the app under "Siri setup":
+1. Ask for input ("Che task?").
+2. Get Contents of URL: POST `https://groceries-d6616-default-rtdb.europe-west1.firebasedatabase.app/taskApp/tasks.json`, JSON body `title` = input, `done` = false, `source` = `siri`.
 
 ## Changelog
-- v1 (31 Oct 2026): MVP. List, add, tick, delete, live sync, Siri via Shortcut.
+- v2 (31 Oct 2026): removed sign-in. Moved from Firestore (`finance-stefano`) to Realtime Database (`groceries-d6616`, node `taskApp`). Siri Shortcut is now one request.
+- v1 (31 Oct 2026): MVP. List, add, tick, delete, live sync, Siri via Shortcut (Google sign-in).
