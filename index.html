@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tasks</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2f6fed">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tasks">
+<style>
+  :root { --bg:#f5f6f8; --card:#fff; --text:#1c1f24; --muted:#6b7280; --line:#e5e7eb; --accent:#2f6fed; --danger:#d93025; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#111317; --card:#1b1e24; --text:#e8eaed; --muted:#9aa0a6; --line:#2c3038; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.4 -apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--text); }
+  main { max-width:680px; margin:0 auto; padding:16px 16px 60px; }
+  header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  header h1 { font-size:22px; margin:0; flex:1; }
+  .ver { font-size:12px; color:var(--muted); }
+  button { font:inherit; border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:8px; padding:7px 12px; cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  input[type=text], input[type=email], input[type=password] { font:inherit; width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--text); }
+  form.add { display:flex; gap:8px; margin-bottom:14px; }
+  ul { list-style:none; margin:0; padding:0; background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  li { display:flex; align-items:center; gap:10px; padding:10px 12px; border-top:1px solid var(--line); }
+  li:first-child { border-top:0; }
+  li .t { flex:1; word-break:break-word; }
+  li.done .t { text-decoration:line-through; color:var(--muted); }
+  li input[type=checkbox] { width:20px; height:20px; accent-color:var(--accent); }
+  .badge { font-size:11px; color:var(--accent); border:1px solid var(--accent); border-radius:6px; padding:0 5px; }
+  .x { border:0; background:none; color:var(--muted); padding:4px 6px; }
+  .x:hover { color:var(--danger); }
+  .empty { padding:14px; color:var(--muted); text-align:center; }
+  details { margin-top:16px; }
+  summary { cursor:pointer; color:var(--muted); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; margin-top:10px; }
+  .card label { display:block; margin:8px 0 4px; font-size:14px; color:var(--muted); }
+  code { font-size:12px; word-break:break-all; background:var(--bg); padding:2px 4px; border-radius:4px; }
+  pre { font-size:12px; white-space:pre-wrap; word-break:break-all; background:var(--bg); padding:8px; border-radius:6px; }
+  .msg { font-size:14px; margin-top:8px; }
+  .hidden { display:none !important; }
+  #signin { text-align:center; margin-top:80px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Tasks</h1>
+    <span class="ver">v1</span>
+    <button id="outBtn" class="hidden">Esci</button>
+  </header>
+
+  <div id="signin" class="hidden">
+    <p>Accedi con Google per vedere i tuoi task.</p>
+    <button class="primary" id="inBtn">Accedi con Google</button>
+    <p class="msg" id="signMsg"></p>
+  </div>
+
+  <div id="app" class="hidden">
+    <form class="add" id="addForm">
+      <input type="text" id="newTitle" placeholder="Nuovo task…" autocomplete="off">
+      <button class="primary" type="submit">Aggiungi</button>
+    </form>
+    <ul id="open"></ul>
+
+    <details id="doneBox">
+      <summary>Completati (<span id="doneCount">0</span>)</summary>
+      <ul id="done" style="margin-top:8px"></ul>
+    </details>
+
+    <details id="siriBox">
+      <summary>Siri setup</summary>
+      <div class="card">
+        <div id="siriStatus" class="msg"></div>
+        <div id="linkForm">
+          <p class="msg">Crea una password solo per Siri. Il tuo account Google resta lo stesso.</p>
+          <label>Email</label><input type="email" id="siriEmail">
+          <label>Password (min 6)</label><input type="password" id="siriPass">
+          <p><button class="primary" id="linkBtn">Collega Siri</button></p>
+        </div>
+        <p class="msg" id="linkMsg"></p>
+        <div id="recipe" class="hidden">
+          <p><b>Shortcut "Aggiungi task"</b> (app Comandi su iPhone):</p>
+          <ol>
+            <li><b>Chiedi input</b> (Testo), domanda: "Che task?"</li>
+            <li><b>Ottieni contenuto dell'URL</b><br>
+              URL: <code id="urlAuth"></code><br>
+              Metodo POST, Corpo JSON:<br>
+              <code>email</code> = la tua email, <code>password</code> = la password, <code>returnSecureToken</code> = Booleano Sì</li>
+            <li><b>Ottieni valore dizionario</b> per la chiave <code>idToken</code></li>
+            <li><b>Testo</b>, con questo contenuto (metti la variabile "Input fornito" al posto di INPUT):
+              <pre>{"fields":{"title":{"stringValue":"INPUT"},"done":{"booleanValue":false},"source":{"stringValue":"siri"}}}</pre></li>
+            <li><b>Ottieni contenuto dell'URL</b><br>
+              URL: <code id="urlDoc"></code><br>
+              Metodo POST. Intestazioni: <code>Authorization</code> = <code>Bearer </code> + "Valore dizionario", <code>Content-Type</code> = <code>application/json</code>.<br>
+              Corpo: File = "Testo"</li>
+          </ol>
+          <p>Poi di' "Ehi Siri, aggiungi task".</p>
+        </div>
+      </div>
+    </details>
+  </div>
+</main>
+
+<script type="module">
+const SDK = "https://www.gstatic.com/firebasejs/13.1.0";
+const { initializeApp } = await import(`${SDK}/firebase-app.js`);
+const {
+  getAuth, GoogleAuthProvider, EmailAuthProvider, onAuthStateChanged,
+  signInWithPopup, signInWithRedirect, getRedirectResult, linkWithCredential, signOut
+} = await import(`${SDK}/firebase-auth.js`);
+const {
+  initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+  collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp
+} = await import(`${SDK}/firebase-firestore.js`);
+const { firebaseConfig } = await import("./firebase-config.js");
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+});
+
+const $ = id => document.getElementById(id);
+let unsub = null;
+let user = null;
+
+getRedirectResult(auth).catch(e => { $("signMsg").textContent = e.code || e.message; });
+
+$("inBtn").onclick = async () => {
+  const p = new GoogleAuthProvider();
+  p.setCustomParameters({ prompt: "select_account" });
+  try { await signInWithPopup(auth, p); }
+  catch (e) {
+    if (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment") return signInWithRedirect(auth, p);
+    $("signMsg").textContent = e.code || e.message;
+  }
+};
+$("outBtn").onclick = () => signOut(auth);
+
+onAuthStateChanged(auth, u => {
+  user = u;
+  if (unsub) { unsub(); unsub = null; }
+  $("signin").classList.toggle("hidden", !!u);
+  $("app").classList.toggle("hidden", !u);
+  $("outBtn").classList.toggle("hidden", !u);
+  if (u) { watch(); showSiri(); }
+});
+
+const tasksCol = () => collection(db, "users", user.uid, "tasks");
+
+function watch() {
+  unsub = onSnapshot(tasksCol(), snap => {
+    const rows = [];
+    snap.forEach(d => {
+      const x = d.data();
+      rows.push({ id: d.id, ...x });
+      // Siri saves without a date: stamp it the first time we see it
+      if (!x.created && !d.metadata.hasPendingWrites) updateDoc(d.ref, { created: serverTimestamp() }).catch(() => {});
+    });
+    const ms = r => r.created && r.created.toMillis ? r.created.toMillis() : Date.now();
+    rows.sort((a, b) => ms(b) - ms(a));
+    render($("open"), rows.filter(r => !r.done), "Nessun task aperto");
+    const done = rows.filter(r => r.done);
+    render($("done"), done, "Ancora niente");
+    $("doneCount").textContent = done.length;
+  }, e => { $("open").innerHTML = `<li class="empty">Errore: ${e.code || e.message}</li>`; });
+}
+
+function render(ul, rows, emptyText) {
+  ul.innerHTML = "";
+  if (!rows.length) { ul.innerHTML = `<li class="empty">${emptyText}</li>`; return; }
+  for (const r of rows) {
+    const li = document.createElement("li");
+    if (r.done) li.className = "done";
+    const cb = document.createElement("input");
+    cb.type = "checkbox"; cb.checked = !!r.done;
+    cb.onchange = () => updateDoc(doc(tasksCol(), r.id), { done: cb.checked });
+    const t = document.createElement("span");
+    t.className = "t"; t.textContent = r.title || "(vuoto)";
+    li.append(cb, t);
+    if (r.source === "siri") { const b = document.createElement("span"); b.className = "badge"; b.textContent = "Siri"; li.append(b); }
+    const x = document.createElement("button");
+    x.className = "x"; x.title = "Elimina"; x.textContent = "✕";
+    x.onclick = () => { if (confirm("Eliminare questo task?")) deleteDoc(doc(tasksCol(), r.id)); };
+    li.append(x);
+    ul.append(li);
+  }
+}
+
+$("addForm").onsubmit = e => {
+  e.preventDefault();
+  const title = $("newTitle").value.trim();
+  if (!title) return;
+  addDoc(tasksCol(), { title, done: false, source: "web", created: serverTimestamp() });
+  $("newTitle").value = "";
+};
+
+function showSiri() {
+  const linked = user.providerData.some(p => p.providerId === "password");
+  $("linkForm").classList.toggle("hidden", linked);
+  $("recipe").classList.toggle("hidden", !linked);
+  $("siriEmail").value = user.email || "";
+  $("siriStatus").textContent = linked ? "✓ Siri collegato (" + (user.providerData.find(p => p.providerId === "password").email) + ")" : "Siri non ancora collegato.";
+  $("urlAuth").textContent = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + firebaseConfig.apiKey;
+  $("urlDoc").textContent = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/users/${user.uid}/tasks`;
+}
+
+$("linkBtn").onclick = async () => {
+  const email = $("siriEmail").value.trim(), pass = $("siriPass").value;
+  try {
+    await linkWithCredential(user, EmailAuthProvider.credential(email, pass));
+    await user.reload(); user = auth.currentUser;
+    $("linkMsg").textContent = "Fatto.";
+    $("siriPass").value = "";
+    showSiri();
+  } catch (e) {
+    $("linkMsg").textContent = e.code === "auth/operation-not-allowed"
+      ? "Prima attiva Email/Password in Firebase (Authentication > Sign-in method)."
+      : (e.code || e.message);
+  }
+};
+</script>
+</body>
+</html>
