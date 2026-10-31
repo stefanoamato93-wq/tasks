@@ -12,71 +12,159 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Tasks">
 <style>
-  :root { --bg:#f5f6f8; --card:#fff; --text:#1c1f24; --muted:#6b7280; --line:#e5e7eb; --accent:#2f6fed; --danger:#d93025; }
+  :root { --bg:#f5f6f8; --card:#fff; --text:#1c1f24; --muted:#6b7280; --line:#e5e7eb; --accent:#2f6fed; --danger:#d93025; --late:#d93025; --chip:#eef2fd; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#111317; --card:#1b1e24; --text:#e8eaed; --muted:#9aa0a6; --line:#2c3038; }
+    :root { --bg:#111317; --card:#1b1e24; --text:#e8eaed; --muted:#9aa0a6; --line:#2c3038; --chip:#1f2a44; }
   }
   * { box-sizing:border-box; }
   body { margin:0; font:16px/1.4 -apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--text); }
-  main { max-width:680px; margin:0 auto; padding:16px 16px 60px; }
+  .wrap { max-width:1000px; margin:0 auto; padding:16px 16px 60px; display:flex; gap:20px; }
+  nav { width:220px; flex-shrink:0; }
+  main { flex:1; min-width:0; }
   header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
   header h1 { font-size:22px; margin:0; flex:1; }
   .ver { font-size:12px; color:var(--muted); }
   button { font:inherit; border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:8px; padding:7px 12px; cursor:pointer; }
   button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
-  input[type=text] { font:inherit; width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--text); }
+  button.danger { color:var(--danger); }
+  input, select, textarea { font:inherit; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--text); }
+  input[type=text], textarea { width:100%; }
   form.add { display:flex; gap:8px; margin-bottom:14px; }
-  ul { list-style:none; margin:0; padding:0; background:var(--card); border:1px solid var(--line); border-radius:10px; }
-  li { display:flex; align-items:center; gap:10px; padding:10px 12px; border-top:1px solid var(--line); }
-  li:first-child { border-top:0; }
-  li .t { flex:1; word-break:break-word; }
+
+  .lists { list-style:none; margin:0; padding:0; }
+  .lists li { display:flex; justify-content:space-between; padding:7px 10px; border-radius:8px; cursor:pointer; }
+  .lists li:hover { background:var(--card); }
+  .lists li.on { background:var(--accent); color:#fff; }
+  .lists li .n { color:inherit; opacity:.7; font-size:14px; }
+  .lists .sep { height:1px; background:var(--line); margin:6px 4px; padding:0; cursor:default; }
+  .menuBtn { display:none; }
+
+  h3 { font-size:14px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:18px 4px 6px; }
+  h3.late { color:var(--late); }
+  ul.tasks { list-style:none; margin:0; padding:0; background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  ul.tasks li { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border-top:1px solid var(--line); }
+  ul.tasks li:first-child { border-top:0; }
+  ul.tasks li input[type=checkbox] { width:20px; height:20px; margin-top:2px; accent-color:var(--accent); flex-shrink:0; }
+  .body { flex:1; min-width:0; cursor:pointer; }
+  .t { word-break:break-word; }
+  .meta { font-size:13px; color:var(--muted); display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:2px; }
+  .meta .late { color:var(--late); }
+  .chip { background:var(--chip); color:var(--accent); border-radius:6px; padding:0 6px; }
   li.done .t { text-decoration:line-through; color:var(--muted); }
-  li input[type=checkbox] { width:20px; height:20px; accent-color:var(--accent); }
-  .badge { font-size:11px; color:var(--accent); border:1px solid var(--accent); border-radius:6px; padding:0 5px; }
-  .x { border:0; background:none; color:var(--muted); padding:4px 6px; }
-  .x:hover { color:var(--danger); }
   .empty { padding:14px; color:var(--muted); text-align:center; }
   details { margin-top:16px; }
   summary { cursor:pointer; color:var(--muted); }
   .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; margin-top:10px; }
   code { font-size:12px; word-break:break-all; background:var(--bg); padding:2px 4px; border-radius:4px; }
+
+  .back { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:flex-end; justify-content:center; z-index:10; }
+  .sheet { background:var(--card); width:100%; max-width:520px; border-radius:14px 14px 0 0; padding:16px; max-height:90vh; overflow:auto; }
+  @media (min-width:700px) { .back { align-items:center; } .sheet { border-radius:14px; } }
+  .sheet label { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .row > * { flex:1; min-width:0; }
+  .actions { display:flex; gap:8px; margin-top:16px; }
+  .actions .sp { flex:1; }
+  .confirm { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:20; }
+  .confirm .box { background:var(--card); border-radius:12px; padding:16px; max-width:320px; width:90%; }
+  .confirm .box button { width:100%; margin-top:8px; }
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--text); color:var(--bg); padding:8px 14px; border-radius:8px; font-size:14px; z-index:30; }
+  .hidden { display:none !important; }
+
+  @media (max-width:700px) {
+    .wrap { display:block; }
+    nav { width:auto; }
+    nav .lists { display:none; margin-bottom:10px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:4px; }
+    nav.open .lists { display:block; }
+    .menuBtn { display:inline-block; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <h1>Tasks</h1>
-    <span class="ver">v2</span>
-  </header>
+<div class="wrap">
+  <nav id="nav">
+    <ul class="lists" id="lists"></ul>
+  </nav>
+  <main>
+    <header>
+      <button class="menuBtn" id="menuBtn">☰</button>
+      <h1 id="viewTitle">Tasks</h1>
+      <span class="ver">v3</span>
+    </header>
 
-  <form class="add" id="addForm">
-    <input type="text" id="newTitle" placeholder="Nuovo task…" autocomplete="off">
-    <button class="primary" type="submit">Aggiungi</button>
-  </form>
-  <ul id="open"><li class="empty">Carico…</li></ul>
+    <form class="add" id="addForm">
+      <input type="text" id="newTitle" placeholder="Nuovo task…" autocomplete="off">
+      <button class="primary" type="submit">Aggiungi</button>
+    </form>
 
-  <details>
-    <summary>Completati (<span id="doneCount">0</span>)</summary>
-    <ul id="done" style="margin-top:8px"></ul>
-  </details>
+    <div id="groups"><div class="empty">Carico…</div></div>
 
-  <details>
-    <summary>Siri setup</summary>
-    <div class="card">
-      <p><b>Shortcut "Aggiungi task"</b> (app Comandi su iPhone):</p>
-      <ol>
-        <li><b>Chiedi input</b> (Testo), domanda: "Che task?"</li>
-        <li><b>Ottieni contenuto dell'URL</b><br>
-          URL: <code id="siriUrl"></code><br>
-          Metodo: POST. Corpo richiesta: JSON, con 3 campi:<br>
-          <code>title</code> (Testo) = "Input fornito"<br>
-          <code>done</code> (Booleano) = No<br>
-          <code>source</code> (Testo) = <code>siri</code></li>
-      </ol>
-      <p>Poi di' "Ehi Siri, aggiungi task".</p>
+    <details id="doneBox">
+      <summary>Completati (<span id="doneCount">0</span>)</summary>
+      <ul class="tasks" id="done" style="margin-top:8px"></ul>
+    </details>
+
+    <details>
+      <summary>Siri setup</summary>
+      <div class="card">
+        <p><b>Shortcut "Aggiungi task"</b> (app Comandi su iPhone):</p>
+        <ol>
+          <li><b>Richiedi input</b> (Testo): "Che task?"</li>
+          <li><b>URL</b>: <code id="siriUrl"></code></li>
+          <li><b>Ottieni contenuti dell'URL</b>, Metodo POST, Corpo JSON:<br>
+            <code>title</code> = Richiedi input, <code>done</code> = Falso, <code>source</code> = <code>siri</code><br>
+            Facoltativi: <code>list</code> (nome elenco), <code>due</code> (data ISO 8601).</li>
+        </ol>
+      </div>
+    </details>
+  </main>
+</div>
+
+<div class="back hidden" id="editBack">
+  <div class="sheet" id="sheet">
+    <label>Titolo</label>
+    <input type="text" id="eTitle">
+    <label>Elenco</label>
+    <input type="text" id="eList" list="listNames" placeholder="Inbox">
+    <datalist id="listNames"></datalist>
+    <label>Scadenza</label>
+    <div class="row">
+      <input type="date" id="eDate">
+      <input type="time" id="eTime">
+      <button type="button" id="eNoDate" style="flex:0">✕</button>
     </div>
-  </details>
-</main>
+    <label>Ripeti</label>
+    <div class="row">
+      <select id="eFreq">
+        <option value="">Mai</option>
+        <option value="day">Giorni</option>
+        <option value="week">Settimane</option>
+        <option value="month">Mesi</option>
+        <option value="year">Anni</option>
+      </select>
+      <span id="everyWrap" class="row" style="flex:1">ogni <input type="number" id="eEvery" min="1" value="1" style="width:70px;flex:0"></span>
+    </div>
+    <label>Note</label>
+    <textarea id="eNotes" rows="3"></textarea>
+    <div class="actions">
+      <button type="button" class="danger" id="eDelete">Elimina</button>
+      <span class="sp"></span>
+      <button type="button" id="eCancel">Annulla</button>
+      <button type="button" class="primary" id="eSave">Salva</button>
+    </div>
+  </div>
+</div>
+
+<div class="confirm hidden" id="confirmModal">
+  <div class="box" id="confirmBox">
+    <div>Hai modifiche non salvate.</div>
+    <button class="primary" id="cSave">Salva</button>
+    <button id="cKeep">Continua a modificare</button>
+    <button class="danger" id="cDiscard">Scarta modifiche</button>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -95,53 +183,254 @@ const firebaseConfig = {
 };
 const db = getDatabase(initializeApp(firebaseConfig));
 const tasksRef = ref(db, "taskApp/tasks");
+const tRef = id => ref(db, "taskApp/tasks/" + id);
 const $ = id => document.getElementById(id);
 $("siriUrl").textContent = firebaseConfig.databaseURL + "/taskApp/tasks.json";
 
+const INBOX = "Inbox";
+let rows = [];
+let view = localStorage.getItem("tasksView") || "@today";   // "@all" | "@today" | "@planned" | list name
+
+// ---------- dates ----------
+const pad = n => String(n).padStart(2, "0");
+// due is stored as an ISO string. Date-only "YYYY-MM-DD" = all-day.
+function dueDate(r) {
+  if (!r.due) return null;
+  const s = String(r.due);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); }
+  const d = new Date(s.replace(" ", "T"));
+  return isNaN(d) ? null : d;
+}
+// a time of exactly 00:00 (how Shortcuts sends all-day reminders) counts as "no time"
+const hasTime = r => {
+  if (!r.due || r.allDay || /^\d{4}-\d{2}-\d{2}$/.test(String(r.due))) return false;
+  const d = dueDate(r); return !!d && (d.getHours() !== 0 || d.getMinutes() !== 0);
+};
+const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const dayDiff = d => Math.round((startOfDay(d) - startOfDay(new Date())) / 86400000);
+const WD = ["dom", "lun", "mar", "mer", "gio", "ven", "sab"];
+const MO = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
+function fmtDue(r) {
+  const d = dueDate(r); if (!d) return "";
+  const n = dayDiff(d);
+  let s = n === 0 ? "Oggi" : n === 1 ? "Domani" : n === -1 ? "Ieri"
+        : (n > 1 && n < 7) ? WD[d.getDay()] + " " + d.getDate()
+        : d.getDate() + " " + MO[d.getMonth()] + (d.getFullYear() !== new Date().getFullYear() ? " " + d.getFullYear() : "");
+  if (hasTime(r)) s += " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+  return s;
+}
+const isLate = r => { const d = dueDate(r); if (!d) return false; return hasTime(r) ? d < new Date() : dayDiff(d) < 0; };
+const FREQ_IT = { day: ["giorno", "giorni"], week: ["settimana", "settimane"], month: ["mese", "mesi"], year: ["anno", "anni"] };
+function fmtRepeat(rep) {
+  if (!rep || !rep.freq) return "";
+  const n = rep.every || 1, w = FREQ_IT[rep.freq];
+  if (!w) return "";
+  return n === 1 ? "ogni " + w[0] : "ogni " + n + " " + w[1];
+}
+function addInterval(d, rep) {
+  const n = rep.every || 1, x = new Date(d);
+  if (rep.freq === "day") x.setDate(x.getDate() + n);
+  else if (rep.freq === "week") x.setDate(x.getDate() + 7 * n);
+  else if (rep.freq === "month") x.setMonth(x.getMonth() + n);
+  else if (rep.freq === "year") x.setFullYear(x.getFullYear() + n);
+  return x;
+}
+function toDueString(d, withTime) {
+  const day = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  return withTime ? day + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes()) : day;
+}
+
+// ---------- data ----------
 onValue(tasksRef, snap => {
   const all = snap.val() || {};
-  const rows = [];
+  rows = [];
   for (const id in all) {
     const x = all[id] || {};
     rows.push({ id, ...x });
     // Siri saves without a date: stamp it the first time we see it
-    if (!x.created) update(ref(db, "taskApp/tasks/" + id), { created: serverTimestamp() }).catch(() => {});
+    if (!x.created) update(tRef(id), { created: serverTimestamp() }).catch(() => {});
   }
-  rows.sort((a, b) => (b.created || Date.now()) - (a.created || Date.now()));
-  render($("open"), rows.filter(r => !r.done), "Nessun task aperto");
-  const done = rows.filter(r => r.done);
-  render($("done"), done, "Ancora niente");
-  $("doneCount").textContent = done.length;
-}, e => { $("open").innerHTML = `<li class="empty">Errore: ${e.message}</li>`; });
+  renderAll();
+}, e => { $("groups").innerHTML = `<div class="empty">Errore: ${e.message}</div>`; });
 
-function render(ul, rows, emptyText) {
-  ul.innerHTML = "";
-  if (!rows.length) { ul.innerHTML = `<li class="empty">${emptyText}</li>`; return; }
-  for (const r of rows) {
-    const li = document.createElement("li");
-    if (r.done) li.className = "done";
-    const cb = document.createElement("input");
-    cb.type = "checkbox"; cb.checked = !!r.done;
-    cb.onchange = () => update(ref(db, "taskApp/tasks/" + r.id), { done: cb.checked });
-    const t = document.createElement("span");
-    t.className = "t"; t.textContent = r.title || "(vuoto)";
-    li.append(cb, t);
-    if (r.source === "siri") { const b = document.createElement("span"); b.className = "badge"; b.textContent = "Siri"; li.append(b); }
-    const x = document.createElement("button");
-    x.className = "x"; x.title = "Elimina"; x.textContent = "✕";
-    x.onclick = () => { if (confirm("Eliminare questo task?")) remove(ref(db, "taskApp/tasks/" + r.id)); };
-    li.append(x);
-    ul.append(li);
-  }
+const listOf = r => (r.list && String(r.list).trim()) || INBOX;
+
+function renderAll() {
+  renderLists();
+  renderTasks();
+  const names = [...new Set(rows.map(listOf))].sort((a, b) => a.localeCompare(b));
+  $("listNames").innerHTML = names.map(n => `<option value="${esc(n)}">`).join("");
 }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function renderLists() {
+  const open = rows.filter(r => !r.done);
+  const counts = {};
+  open.forEach(r => counts[listOf(r)] = (counts[listOf(r)] || 0) + 1);
+  const today = open.filter(r => { const d = dueDate(r); return d && dayDiff(d) <= 0; }).length;
+  const planned = open.filter(r => dueDate(r)).length;
+  const names = Object.keys(counts).sort((a, b) => a === INBOX ? -1 : b === INBOX ? 1 : a.localeCompare(b));
+  const items = [
+    ["@today", "📅 Oggi", today], ["@planned", "🗓️ Programmati", planned], ["@all", "📋 Tutti", open.length], ["sep"],
+    ...names.map(n => [n, n, counts[n]])
+  ];
+  if (view !== "@today" && view !== "@planned" && view !== "@all" && !counts[view]) view = "@today";
+  $("lists").innerHTML = "";
+  for (const [key, label, n] of items) {
+    const li = document.createElement("li");
+    if (key === "sep") { li.className = "sep"; $("lists").append(li); continue; }
+    if (key === view) li.className = "on";
+    li.innerHTML = `<span>${esc(label)}</span><span class="n">${n || ""}</span>`;
+    li.onclick = () => { view = key; localStorage.setItem("tasksView", view); $("nav").classList.remove("open"); renderAll(); };
+    $("lists").append(li);
+  }
+  $("viewTitle").textContent = view === "@today" ? "Oggi" : view === "@planned" ? "Programmati" : view === "@all" ? "Tutti" : view;
+}
+
+function inView(r) {
+  if (view === "@all") return true;
+  if (view === "@today") { const d = dueDate(r); return d && dayDiff(d) <= 0; }
+  if (view === "@planned") return !!dueDate(r);
+  return listOf(r) === view;
+}
+
+function renderTasks() {
+  const vis = rows.filter(inView);
+  const open = vis.filter(r => !r.done);
+  const byDue = (a, b) => {
+    const da = dueDate(a), dbb = dueDate(b);
+    if (da && dbb) return da - dbb;
+    if (da) return -1; if (dbb) return 1;
+    return (b.created || 0) - (a.created || 0);
+  };
+  open.sort(byDue);
+  const groups = [["In ritardo", [], "late"], ["Oggi", []], ["Domani", []], ["Prossimi 7 giorni", []], ["Più avanti", []], ["Senza data", []]];
+  for (const r of open) {
+    const d = dueDate(r);
+    if (!d) groups[5][1].push(r);
+    else if (isLate(r)) groups[0][1].push(r);
+    else { const n = dayDiff(d); groups[n <= 0 ? 1 : n === 1 ? 2 : n < 7 ? 3 : 4][1].push(r); }
+  }
+  const box = $("groups"); box.innerHTML = "";
+  let any = false;
+  for (const [name, list, cls] of groups) {
+    if (!list.length) continue;
+    any = true;
+    const h = document.createElement("h3"); h.textContent = name + " · " + list.length; if (cls) h.className = cls;
+    const ul = document.createElement("ul"); ul.className = "tasks";
+    list.forEach(r => ul.append(row(r)));
+    box.append(h, ul);
+  }
+  if (!any) box.innerHTML = `<div class="empty">Nessun task aperto 🎉</div>`;
+  const done = vis.filter(r => r.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
+  $("doneCount").textContent = done.length;
+  $("done").innerHTML = "";
+  if (!done.length) $("done").innerHTML = `<li class="empty">Ancora niente</li>`;
+  done.slice(0, 200).forEach(r => $("done").append(row(r)));
+}
+
+function row(r) {
+  const li = document.createElement("li");
+  if (r.done) li.className = "done";
+  const cb = document.createElement("input");
+  cb.type = "checkbox"; cb.checked = !!r.done;
+  cb.onchange = () => toggle(r, cb.checked);
+  const body = document.createElement("div"); body.className = "body";
+  const t = document.createElement("div"); t.className = "t"; t.textContent = r.title || "(vuoto)";
+  const meta = document.createElement("div"); meta.className = "meta";
+  const due = fmtDue(r);
+  if (due) { const s = document.createElement("span"); s.textContent = due; if (!r.done && isLate(r)) s.className = "late"; meta.append(s); }
+  const rep = fmtRepeat(r.repeat);
+  if (rep) { const s = document.createElement("span"); s.textContent = "🔁 " + rep; meta.append(s); }
+  if (view.startsWith("@")) { const s = document.createElement("span"); s.className = "chip"; s.textContent = listOf(r); meta.append(s); }
+  if (r.notes) { const s = document.createElement("span"); s.textContent = "📝"; meta.append(s); }
+  if (r.source === "siri") { const s = document.createElement("span"); s.textContent = "🎙️"; meta.append(s); }
+  body.append(t); if (meta.childNodes.length) body.append(meta);
+  body.onclick = () => openEditor(r);
+  li.append(cb, body);
+  return li;
+}
+
+function toggle(r, checked) {
+  if (checked && r.repeat && r.repeat.freq) {
+    // repeating task: move the due date forward instead of closing it
+    const base = dueDate(r) || startOfDay(new Date());
+    let next = addInterval(base, r.repeat);
+    while (startOfDay(next) < startOfDay(new Date())) next = addInterval(next, r.repeat);
+    const due = toDueString(next, hasTime(r));
+    update(tRef(r.id), { due, done: false, lastDone: Date.now() });
+    toast("Prossima: " + fmtDue({ due }));
+    return;
+  }
+  update(tRef(r.id), checked ? { done: true, doneAt: Date.now() } : { done: false, doneAt: null });
+}
+
+let toastT;
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.remove("hidden"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.add("hidden"), 2500); }
 
 $("addForm").onsubmit = e => {
   e.preventDefault();
   const title = $("newTitle").value.trim();
   if (!title) return;
-  push(tasksRef, { title, done: false, source: "web", created: serverTimestamp() });
+  const data = { title, done: false, source: "web", created: serverTimestamp() };
+  if (!view.startsWith("@")) data.list = view;
+  if (view === "@today") data.due = toDueString(new Date(), false);
+  push(tasksRef, data);
   $("newTitle").value = "";
 };
+$("menuBtn").onclick = () => $("nav").classList.toggle("open");
+
+// ---------- editor ----------
+let editing = null, snapshot = "";
+function formState() {
+  return JSON.stringify([$("eTitle").value, $("eList").value, $("eDate").value, $("eTime").value, $("eFreq").value, $("eEvery").value, $("eNotes").value]);
+}
+function openEditor(r) {
+  editing = r;
+  $("eTitle").value = r.title || "";
+  $("eList").value = listOf(r) === INBOX ? "" : listOf(r);
+  const d = dueDate(r);
+  $("eDate").value = d ? toDueString(d, false) : "";
+  $("eTime").value = d && hasTime(r) ? pad(d.getHours()) + ":" + pad(d.getMinutes()) : "";
+  $("eFreq").value = (r.repeat && r.repeat.freq) || "";
+  $("eEvery").value = (r.repeat && r.repeat.every) || 1;
+  $("eNotes").value = r.notes || "";
+  $("everyWrap").classList.toggle("hidden", !$("eFreq").value);
+  snapshot = formState();
+  $("editBack").classList.remove("hidden");
+}
+function closeEditor() { $("editBack").classList.add("hidden"); editing = null; }
+$("eFreq").onchange = () => $("everyWrap").classList.toggle("hidden", !$("eFreq").value);
+$("eNoDate").onclick = () => { $("eDate").value = ""; $("eTime").value = ""; };
+function saveEditor() {
+  const title = $("eTitle").value.trim() || "(vuoto)";
+  const list = $("eList").value.trim();
+  const date = $("eDate").value, time = $("eTime").value;
+  const freq = $("eFreq").value;
+  const data = {
+    title,
+    list: list || null,
+    due: date ? (time ? date + "T" + time : date) : null,
+    allDay: null,
+    repeat: freq ? { freq, every: Math.max(1, parseInt($("eEvery").value) || 1) } : null,
+    notes: $("eNotes").value.trim() || null
+  };
+  update(tRef(editing.id), data);
+  closeEditor();
+}
+$("eSave").onclick = saveEditor;
+$("eCancel").onclick = closeEditor;
+$("eDelete").onclick = () => { if (confirm("Eliminare questo task?")) { remove(tRef(editing.id)); closeEditor(); } };
+$("editBack").onclick = e => {
+  if (e.target !== $("editBack")) return;
+  if (formState() === snapshot) closeEditor();
+  else $("confirmModal").classList.remove("hidden");
+};
+const hideConfirm = () => $("confirmModal").classList.add("hidden");
+$("confirmModal").onclick = e => { if (e.target === $("confirmModal")) hideConfirm(); };
+$("cSave").onclick = () => { hideConfirm(); saveEditor(); };
+$("cKeep").onclick = hideConfirm;
+$("cDiscard").onclick = () => { hideConfirm(); closeEditor(); };
 </script>
 </body>
 </html>
