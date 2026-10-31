@@ -177,6 +177,10 @@
   .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
   .row > * { flex:1; min-width:0; }
   .dueLabel { font-size:15px; margin-bottom:8px; }
+  /* -1 / +1 day: big buttons beside the date */
+  .dayStep { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .dayStep .dueLabel { flex:1; margin:0; text-align:center; }
+  .dayStep button { flex:0 0 auto; min-width:72px; padding:12px 14px; font-size:17px; font-weight:600; border-radius:12px; }
   .dueLabel.late { color:var(--late); }
   #sSubs li { display:flex; align-items:center; gap:10px; padding:3px 0; }
   #sSubs li .x { border:0; background:none; color:var(--muted); padding:2px 6px; }
@@ -228,7 +232,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v25</span>
+      <span class="ver">v26</span>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
     <div class="dayNav" id="dayNav">
@@ -313,7 +317,11 @@
     </div>
 
     <div class="sec">Data</div>
-    <div class="dueLabel" id="sDueLabel"></div>
+    <div class="dayStep">
+      <button data-d="-1d">&minus;1 g</button>
+      <div class="dueLabel" id="sDueLabel"></div>
+      <button data-d="+1d">+1 g</button>
+    </div>
     <div class="btns" style="margin-bottom:6px">
       <button data-d="today">Oggi</button>
       <button data-d="tomorrow">Domani</button>
@@ -322,7 +330,6 @@
       <button data-d="none">Nessuna</button>
     </div>
     <div class="btns" style="margin-bottom:8px">
-      <button data-d="-1d">−1 g</button><button data-d="+1d">+1 g</button>
       <button data-d="-1w">−1 sett</button><button data-d="+1w">+1 sett</button>
       <button data-d="-1m">−1 mese</button><button data-d="+1m">+1 mese</button>
     </div>
