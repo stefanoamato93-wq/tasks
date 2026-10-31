@@ -35,13 +35,16 @@ Firebase Realtime Database, project `groceries-d6616` (same as gym/grocery/calen
 The node is open in the RTDB rules: `"taskApp": { ".read": true, ".write": true }`.
 
 ## Features
-- **Views** (sidebar on computer, bottom bar on phone): Oggi (due today or late), Calendario, Programmati, Tutti, Completati, then the categories. Last view is remembered (`localStorage.tasksView`).
-- **Oggi / Programmati / Tutti** are grouped by category (name + colour dot + count), in the user's order. **A single category** is grouped by day (In ritardo, then one header per day, then Senza data). Group headers collapse (state in `localStorage.tasksCollapsed`).
+- **Views** (sidebar on computer, bottom bar on phone): Oggi, Calendario, Tutti, Completati, then the categories. Last view is remembered (`localStorage.tasksView`).
+- **Day bar in Oggi:** ‹ › arrows (and swipe left/right on phone) move to another day; "Oggi" jumps back. Today shows due + late tasks; another day shows tasks due that day plus future repeats falling on it (tick disabled). Quick add uses the shown day.
+- **Delete:** red ✕ on every task deletes at once; the toast offers "Annulla" for 5 s. Same for the sheet's Elimina and for "Elimina tutti" in Completati (that one still asks once, since it is bulk).
+- **Oggi / Tutti** are grouped by category (name + colour dot + count), in the user's order. **A single category** is grouped by day (In ritardo, then one header per day, then Senza data). Group headers collapse (state in `localStorage.tasksCollapsed`).
 - **Search** box (🔍) searches title, notes and category across all tasks, open and completed, grouped by category.
 - **Quick add** goes to the default category (★) due today; inside a category it goes to that category, due today; in the calendar it goes to the selected day. The hint under the box says where.
 - **Task sheet** (tap a task; every change saves at once): title; date with Oggi / Domani / Nessuna and −/+1 giorno, settimana, mese, plus date/time pickers; category chips; repeat chips (Mai, ogni giorno/settimana/mese/anno) plus "Personalizza: ogni N unità"; sub-tasks (tick, rename, remove, add); notes; Duplica; Elimina.
 - **Drag & drop** (computer): drag a task onto a category in the sidebar, onto a category header, or onto a calendar day.
-- **Categories:** "✏️ Modifica elenchi" in the sidebar: ↑/↓ reorder, ✎ rename (updates every task in it), ★ set as default, tap the dot to change colour, + Nuovo.
+- **Categories:** "✏️ Modifica elenchi" in the sidebar: ↑/↓ reorder, ✎ rename (updates every task in it), ★ set as default, tap the dot to change colour (centred swatch picker + "Altro colore"; the native picker alone opened off-screen), + Nuovo.
+- **Calendar** opens on the current week: a rolling 6-week grid from this Monday; ‹ › (or swipe) move 4 weeks; past days are dimmed.
 - **Completed** tasks are hidden from every view except "Completati", which has "Elimina tutti".
 - **Repeating tasks:** ticking moves the due date to the next occurrence (skipping past dates) and resets sub-tasks. The calendar also shows future repeats (tick disabled there).
 - **Sub-tasks** show as "☑ 2/5" on the task; tap to open them inline with round ticks and a "+ sotto-task" field.
@@ -58,6 +61,7 @@ Shortcuts cannot read a reminder's repeat rule, so repeats are set by hand in th
 31 Oct 2026: the first full import sent dates as Italian text with the title stuck on (`1 nov 2026, 00:00Affitto`); all 184 were rewritten once to `YYYY-MM-DD[THH:MM]`.
 
 ## Changelog
+- v6 (31 Oct 2026): red ✕ delete with undo, colour picker on screen, calendar starts on the current week, removed Programmati, day arrows + swipe in Oggi, fixed the Completati "Elimina tutti" bar.
 - v5 (31 Oct 2026): dark mode, GoodTask-like layout (category groups, round ticks, bottom bar on phone), task sheet with quick date/category/repeat/duplicate, drag & drop, rename/reorder/default categories, separate Completati view with "Elimina tutti", search, per-day groups inside a category, new tasks and Siri default to the ★ category for today. Removed the Siri setup panel.
 - v4 (31 Oct 2026): list colours, calendar view, sub-tasks from notes, reads Italian Shortcuts dates.
 - v3 (31 Oct 2026): lists sidebar, due dates with groups, repeating tasks, notes, edit sheet.

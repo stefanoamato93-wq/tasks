@@ -23,7 +23,20 @@
   main { flex:1; min-width:0; }
   header { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
   header h1 { font-size:22px; margin:0; flex:1; display:flex; align-items:center; gap:8px; }
-  .today { color:var(--muted); font-size:14px; margin:0 0 12px; text-transform:capitalize; }
+  .today { color:var(--muted); font-size:14px; text-transform:capitalize; flex:1; text-align:center; }
+  .dayNav { display:flex; align-items:center; gap:4px; margin:0 0 10px; }
+  .dayNav button { font-size:20px; padding:2px 12px; }
+  .dayNav.off .navArrow { visibility:hidden; }
+  .doneBar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 2px 12px; }
+  .doneBar span { color:var(--muted); font-size:14px; }
+  .doneBar button { white-space:nowrap; padding:7px 14px; border-color:var(--danger); }
+  .doneBar button:disabled { opacity:.4; }
+  .del { border:0; background:none; color:var(--danger); font-size:16px; padding:0 4px; flex-shrink:0; opacity:.8; }
+  .del:hover { opacity:1; }
+  .toast button { margin-left:10px; padding:2px 10px; font-size:13px; background:#1c1c1e; color:#fff; border:0; }
+  .swatches { display:grid; grid-template-columns:repeat(6, 1fr); gap:10px; margin:12px 0; }
+  .swatches button { width:100%; aspect-ratio:1; border-radius:50%; border:3px solid transparent; padding:0; }
+  .swatches button.on { border-color:#fff; }
   .ver { font-size:12px; color:var(--muted); }
   button { font:inherit; border:1px solid var(--line); background:var(--card2); color:var(--text); border-radius:8px; padding:7px 12px; cursor:pointer; }
   button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
@@ -147,9 +160,14 @@
   <main>
     <header>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v5</span>
+      <span class="ver">v6</span>
     </header>
-    <p class="today" id="todayLabel"></p>
+    <div class="dayNav" id="dayNav">
+      <button class="ghost navArrow" id="dayPrev">‹</button>
+      <span class="today" id="todayLabel"></span>
+      <button class="ghost navArrow" id="dayNext">›</button>
+      <button class="ghost navArrow" id="dayToday" style="font-size:13px">Oggi</button>
+    </div>
     <div class="row" style="margin-bottom:10px;flex-wrap:nowrap">
       <input type="search" id="q" placeholder="🔍 Cerca task…" autocomplete="off" style="flex:1">
     </div>
@@ -175,7 +193,10 @@
     <div id="listView"><div class="empty">Carico…</div></div>
 
     <div id="doneView" class="hidden">
-      <div class="row" style="margin-bottom:10px"><span id="doneInfo" style="color:var(--muted)"></span><button class="danger" id="clearDone" style="flex:0;white-space:nowrap">Elimina tutti</button></div>
+      <div class="doneBar">
+        <span id="doneInfo"></span>
+        <button class="danger" id="clearDone">🗑 Elimina tutti</button>
+      </div>
       <ul class="tasks" id="doneList"></ul>
     </div>
   </main>
@@ -192,7 +213,14 @@
   <button class="plus" id="plusBtn">+</button>
 </div>
 
-<input type="color" id="colorPick" style="position:fixed;left:-100px;top:0;width:1px;height:1px;opacity:0">
+<div class="back hidden" id="colorBack" style="align-items:center">
+  <div class="sheet" style="max-width:340px;border-radius:16px">
+    <b id="colorTitle"></b>
+    <div class="swatches" id="swatches"></div>
+    <div class="row"><span style="color:var(--muted);font-size:14px">Altro colore</span><input type="color" id="colorPick" style="flex:0 0 60px;height:36px;padding:2px"></div>
+    <div class="actions"><span class="sp"></span><button class="primary" id="colorDone">Fatto</button></div>
+  </div>
+</div>
 
 <div class="back hidden" id="sheetBack">
   <div class="sheet" id="sheet">
@@ -286,7 +314,12 @@ let settings = {};            // taskApp/settings: { defaultList }
 let loaded = false;
 let view = localStorage.getItem("tasksView") || "@today";   // @today @calendar @planned @all @done or list name
 let editLists = false;
-let calMonth = new Date(); calMonth.setDate(1);
+if (view === "@planned") view = "@today";
+let selDay = null;            // day shown in "Oggi" (null = today)
+const mondayOf = d => { const x = startOfDayRaw(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+function startOfDayRaw(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+let calStart = mondayOf(new Date());   // calendar opens on the current week
+const CAL_WEEKS = 6;
 let calSel = null;
 const expanded = new Set();
 const collapsed = new Set(JSON.parse(localStorage.getItem("tasksCollapsed") || "[]"));
@@ -338,7 +371,14 @@ function addInterval(d, rep, sign = 1) {
   return x;
 }
 const todayStr = () => dayKey(new Date());
-$("todayLabel").textContent = (() => { const d = new Date(); return WD_FULL[d.getDay()] + " " + d.getDate() + " " + MO_FULL[d.getMonth()] + " " + d.getFullYear(); })();
+const curDay = () => selDay || todayStr();
+const keyToDate = k => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
+function longDate(d) { return WD_FULL[d.getDay()] + " " + d.getDate() + " " + MO_FULL[d.getMonth()] + " " + d.getFullYear(); }
+function shiftDay(n) {
+  const d = keyToDate(curDay()); d.setDate(d.getDate() + n);
+  selDay = dayKey(d) === todayStr() ? null : dayKey(d);
+  renderAll();
+}
 
 // ---------- sub-tasks (GoodTask format inside notes: "- [ ] text" / "- [x] text") ----------
 const SUB_RE = /^\s*[-*]\s*\[( |x|X)\]\s?(.*)$/;
@@ -399,10 +439,11 @@ onValue(ref(db, "taskApp/settings"), snap => { settings = snap.val() || {}; rend
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const isSpecial = v => v.startsWith("@");
-const VIEW_NAMES = { "@today": "Oggi", "@calendar": "Calendario", "@planned": "Programmati", "@all": "Tutti", "@done": "Completati" };
+const VIEW_NAMES = { "@today": "Oggi", "@calendar": "Calendario", "@all": "Tutti", "@done": "Completati" };
 
 function setView(v) {
   if (v === "@lists") { $("nav").classList.add("open"); return; }
+  if (v === "@today") selDay = null;
   view = v; localStorage.setItem("tasksView", view);
   $("nav").classList.remove("open");
   renderAll();
@@ -429,9 +470,16 @@ function renderAll() {
   document.querySelectorAll("#bar button").forEach(b => b.classList.toggle("on", b.dataset.v === view));
   const h = $("viewTitle"); h.innerHTML = "";
   if (!isSpecial(view)) { const d = document.createElement("span"); d.className = "dot"; d.style.background = colorOf(view); h.append(d); }
-  h.append(VIEW_NAMES[view] || view);
+  let title = VIEW_NAMES[view] || view;
+  if (view === "@today" && selDay) { const n = dayDiff(keyToDate(selDay)); title = n === 1 ? "Domani" : n === -1 ? "Ieri" : "Giorno"; }
+  h.append(title);
+  // day bar: arrows only in "Oggi"
+  const onDay = view === "@today" && !q;
+  $("dayNav").classList.toggle("off", !onDay);
+  $("todayLabel").textContent = longDate(onDay ? keyToDate(curDay()) : new Date());
+  $("dayToday").classList.toggle("hidden", !selDay);
   const addList = isSpecial(view) ? defaultList() : view;
-  const addDay = view === "@calendar" && calSel ? calSel : todayStr();
+  const addDay = view === "@calendar" && calSel ? calSel : view === "@today" ? curDay() : todayStr();
   $("addHint").textContent = "→ " + addList + " · " + (addDay === todayStr() ? "oggi" : fmtDue({ due: addDay }));
   if (sheetId) renderSheet();
 }
@@ -445,7 +493,7 @@ function renderLists() {
   const done = rows.length - open.length;
   const names = allLists();
   const ul = $("lists"); ul.innerHTML = "";
-  const special = [["@today", "📅 Oggi", today], ["@calendar", "🗓️ Calendario", ""], ["@planned", "⏰ Programmati", planned], ["@all", "📋 Tutti", open.length], ["@done", "✅ Completati", done]];
+  const special = [["@today", "📅 Oggi", today], ["@calendar", "🗓️ Calendario", ""], ["@all", "📋 Tutti", open.length], ["@done", "✅ Completati", done]];
   for (const [key, label, n] of special) ul.append(navItem(key, label, n));
   const sep = document.createElement("li"); sep.className = "sep"; ul.append(sep);
   names.forEach((name, i) => ul.append(navItem(name, name, counts[name] || 0, i, names)));
@@ -481,11 +529,24 @@ function navItem(key, label, n, idx, names) {
 }
 
 function pickColor(name) {
-  const p = $("colorPick");
-  p.value = colorOf(name);
-  p.oninput = () => update(ref(db, "taskApp/lists/" + listKey(name)), { name, color: p.value });
-  p.click();
+  const setC = c => update(ref(db, "taskApp/lists/" + listKey(name)), { name, color: c });
+  const draw = () => {
+    const cur = colorOf(name);
+    $("colorTitle").textContent = "Colore: " + name;
+    const sw = $("swatches"); sw.innerHTML = "";
+    PALETTE.concat(["#5ac8fa", "#a2845e", "#ff9f0a", "#34c759", "#bf5af2", "#ff375f"]).forEach(c => {
+      const b = document.createElement("button"); b.style.background = c; if (c.toLowerCase() === cur.toLowerCase()) b.className = "on";
+      b.onclick = () => { setC(c); setTimeout(draw, 150); };
+      sw.append(b);
+    });
+    $("colorPick").value = cur;
+  };
+  $("colorPick").oninput = () => setC($("colorPick").value);
+  draw();
+  $("colorBack").classList.remove("hidden");
 }
+$("colorDone").onclick = () => $("colorBack").classList.add("hidden");
+$("colorBack").onclick = e => { if (e.target === $("colorBack")) $("colorBack").classList.add("hidden"); };
 function moveList(names, idx, dir) {
   const j = idx + dir; if (j < 0 || j >= names.length) return;
   const order = names.slice(); [order[idx], order[j]] = [order[j], order[idx]];
@@ -531,9 +592,17 @@ function moveTaskToDay(id, k) {
 function inView(r) {
   if (r.done) return false;
   if (view === "@all") return true;
-  if (view === "@today") { const d = dueDate(r); return d && dayDiff(d) <= 0; }
-  if (view === "@planned") return !!dueDate(r);
+  if (view === "@today") {
+    const d = dueDate(r); if (!d) return false;
+    return selDay ? dayKey(d) === selDay : dayDiff(d) <= 0;   // today also shows late tasks
+  }
   return listOf(r) === view;
+}
+// future repeats of repeating tasks that fall on the chosen day (shown, tick disabled)
+function projectedFor(k) {
+  if (!selDay || dayDiff(keyToDate(k)) <= 0) return [];
+  const from = keyToDate(k), to = keyToDate(k); to.setDate(to.getDate() + 1);
+  return (occurrencesBetween(from, to)[k] || []).filter(it => it.future).map(it => it.r);
 }
 const byDue = (a, b) => {
   const da = dueDate(a), dbb = dueDate(b);
@@ -542,6 +611,7 @@ const byDue = (a, b) => {
   return (b.created || 0) - (a.created || 0);
 };
 
+let futureIds = new Set();
 function groupBlock(key, label, items, opts = {}) {
   const frag = document.createDocumentFragment();
   const gh = document.createElement("div"); gh.className = "gh" + (opts.late ? " late" : "");
@@ -555,7 +625,7 @@ function groupBlock(key, label, items, opts = {}) {
   frag.append(gh);
   if (!isCol) {
     const ul = document.createElement("ul"); ul.className = "tasks";
-    items.forEach(r => ul.append(row(r)));
+    items.forEach(r => ul.append(row(r, futureIds.has(r.id) ? { future: true, when: "🔁 ripetizione futura" } : {})));
     frag.append(ul);
   }
   return frag;
@@ -563,7 +633,9 @@ function groupBlock(key, label, items, opts = {}) {
 
 function renderTasks() {
   const box = $("listView"); box.innerHTML = "";
-  const open = rows.filter(inView).sort(byDue);
+  const proj = view === "@today" ? projectedFor(curDay()) : [];
+  futureIds = new Set(proj.map(r => r.id));
+  const open = rows.filter(inView).concat(proj).sort(byDue);
   if (!open.length) { box.innerHTML = `<div class="empty">Nessun task 🎉</div>`; return; }
   if (isSpecial(view)) {
     // grouped by category, in the user's order
@@ -621,7 +693,8 @@ $("clearDone").onclick = () => {
   const done = rows.filter(r => r.done);
   if (!done.length || !confirm("Eliminare definitivamente " + done.length + " task completati?")) return;
   const upd = {}; done.forEach(r => upd["tasks/" + r.id] = null);
-  update(rootRef, upd).then(() => toast("Eliminati " + done.length));
+  const back = {}; done.forEach(r => { const { id, ...c } = r; back["tasks/" + id] = c; });
+  update(rootRef, upd).then(() => toast("Eliminati " + done.length, "Annulla", () => update(rootRef, back)));
 };
 
 function ring(checked, color, small, onToggle) {
@@ -671,6 +744,11 @@ function row(r, opts = {}) {
     body.append(ul);
   }
   li.append(rg, body);
+  if (!opts.future) {
+    const del = document.createElement("button"); del.className = "del"; del.title = "Elimina"; del.textContent = "✕";
+    del.onclick = e => { e.stopPropagation(); deleteTask(r.id); };
+    li.append(del);
+  }
   li.onclick = () => openSheet(r.id);
   if (!opts.future) {
     li.draggable = true;
@@ -699,7 +777,23 @@ function toggle(r, checked) {
 }
 
 let toastT;
-function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.remove("hidden"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.add("hidden"), 2200); }
+function toast(msg, action, onAction) {
+  const t = $("toast"); t.textContent = msg;
+  if (action) {
+    const b = document.createElement("button"); b.textContent = action;
+    b.onclick = () => { t.classList.add("hidden"); onAction(); };
+    t.append(b);
+  }
+  t.classList.remove("hidden"); clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.add("hidden"), action ? 5000 : 2200);
+}
+// delete at once, offer undo for a few seconds
+function deleteTask(id) {
+  const r = rows.find(x => x.id === id); if (!r) return;
+  const { id: _, ...copy } = r;
+  remove(tRef(id));
+  toast("Eliminato", "Annulla", () => update(tRef(id), copy));
+}
 
 // ---------- calendar ----------
 function occurrencesBetween(from, to) {
@@ -718,22 +812,22 @@ function occurrencesBetween(from, to) {
   return map;
 }
 function renderCalendar() {
-  const y = calMonth.getFullYear(), m = calMonth.getMonth();
-  $("calMonth").textContent = MO_FULL[m] + " " + y;
-  const first = new Date(y, m, 1);
-  const start = new Date(y, m, 1 - ((first.getDay() + 6) % 7));
-  const end = new Date(start); end.setDate(start.getDate() + 42);
+  // rolling grid: starts on the Monday of calStart's week, 6 weeks long
+  const start = new Date(calStart);
+  const end = new Date(start); end.setDate(start.getDate() + 7 * CAL_WEEKS);
+  const last = new Date(end); last.setDate(last.getDate() - 1);
+  $("calMonth").textContent = start.getDate() + " " + MO[start.getMonth()] + " – " + last.getDate() + " " + MO[last.getMonth()] + " " + last.getFullYear();
   const occ = occurrencesBetween(start, end);
   const grid = $("calGrid"); grid.innerHTML = "";
   ["lun", "mar", "mer", "gio", "ven", "sab", "dom"].forEach(w => { const d = document.createElement("div"); d.className = "wd"; d.textContent = w; grid.append(d); });
   const tk = todayStr();
   if (!calSel) calSel = tk;
-  for (let i = 0; i < 42; i++) {
+  for (let i = 0; i < 7 * CAL_WEEKS; i++) {
     const d = new Date(start); d.setDate(start.getDate() + i);
     const k = dayKey(d), items = occ[k] || [];
     const cell = document.createElement("div");
-    cell.className = "day" + (d.getMonth() !== m ? " other" : "") + (k === tk ? " isToday" : "") + (k === calSel ? " sel" : "");
-    cell.innerHTML = `<span class="num">${d.getDate()}</span>`;
+    cell.className = "day" + (dayDiff(d) < 0 ? " other" : "") + (k === tk ? " isToday" : "") + (k === calSel ? " sel" : "");
+    cell.innerHTML = `<span class="num">${d.getDate()}${d.getDate() === 1 || i === 0 ? " " + MO[d.getMonth()] : ""}</span>`;
     items.slice(0, 3).forEach(it => {
       const e = document.createElement("div"); e.className = "ev";
       e.style.background = colorOf(listOf(it.r)); e.textContent = it.r.title || "";
@@ -755,9 +849,25 @@ function renderCalendar() {
   if (!selItems.length) ul.innerHTML = `<li class="empty">Niente in questo giorno</li>`;
   selItems.forEach(it => ul.append(row(it.r, { future: it.future, showList: true, when: it.future ? "🔁 ripetizione futura" : "" })));
 }
-$("calPrev").onclick = () => { calMonth.setMonth(calMonth.getMonth() - 1); renderCalendar(); };
-$("calNext").onclick = () => { calMonth.setMonth(calMonth.getMonth() + 1); renderCalendar(); };
-$("calToday").onclick = () => { calMonth = new Date(); calMonth.setDate(1); calSel = todayStr(); renderAll(); };
+const calShift = w => { calStart.setDate(calStart.getDate() + 7 * w); renderCalendar(); };
+$("calPrev").onclick = () => calShift(-4);
+$("calNext").onclick = () => calShift(4);
+$("calToday").onclick = () => { calStart = mondayOf(new Date()); calSel = todayStr(); renderAll(); };
+
+// ---------- day arrows + swipe ----------
+$("dayPrev").onclick = () => shiftDay(-1);
+$("dayNext").onclick = () => shiftDay(1);
+$("dayToday").onclick = () => { selDay = null; renderAll(); };
+let tx = null, ty = null;
+document.querySelector("main").addEventListener("touchstart", e => { if (e.touches.length !== 1) return; tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+document.querySelector("main").addEventListener("touchend", e => {
+  if (tx === null || sheetId) return;
+  const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+  tx = null;
+  if (Math.abs(dx) < 70 || Math.abs(dy) > 50) return;
+  if (view === "@today" && !q) shiftDay(dx < 0 ? 1 : -1);
+  else if (view === "@calendar" && !q) calShift(dx < 0 ? 4 : -4);
+}, { passive: true });
 
 // ---------- add ----------
 $("addForm").onsubmit = e => {
@@ -767,7 +877,7 @@ $("addForm").onsubmit = e => {
   push(tasksRef, {
     title, done: false, source: "web", created: serverTimestamp(),
     list: isSpecial(view) ? defaultList() : view,
-    due: view === "@calendar" && calSel ? calSel : todayStr()
+    due: view === "@calendar" && calSel ? calSel : view === "@today" ? curDay() : todayStr()
   });
   $("newTitle").value = "";
 };
@@ -878,7 +988,7 @@ $("sDup").onclick = () => {
   toast("Duplicato");
   closeSheet();
 };
-$("sDelete").onclick = () => { if (confirm("Eliminare questo task?")) { remove(tRef(sheetId)); sheetId = null; $("sheetBack").classList.add("hidden"); } };
+$("sDelete").onclick = () => { const id = sheetId; sheetId = null; $("sheetBack").classList.add("hidden"); deleteTask(id); };
 $("sClose").onclick = closeSheet;
 $("sheetBack").onclick = e => { if (e.target === $("sheetBack")) closeSheet(); };
 document.addEventListener("keydown", e => { if (e.key === "Escape" && sheetId) closeSheet(); });
