@@ -124,6 +124,9 @@
   .btns button { padding:6px 10px; font-size:14px; }
   .btns button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
   .catChip { display:inline-flex; align-items:center; gap:6px; }
+  .dayPick { display:grid; grid-template-columns:repeat(7, 1fr); gap:6px; }
+  .dayPick button { padding:7px 0; font-size:14px; border-radius:8px; }
+  .dayPick button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
   .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
   .row > * { flex:1; min-width:0; }
   .dueLabel { font-size:15px; margin-bottom:8px; }
@@ -166,7 +169,7 @@
   <main>
     <header>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v8</span>
+      <span class="ver">v9</span>
     </header>
     <div class="dayNav" id="dayNav">
       <button class="ghost navArrow" id="dayPrev">‹</button>
@@ -258,11 +261,20 @@
     <div class="btns" id="sRep">
       <button data-r="">Mai</button>
       <button data-r="day">Ogni giorno</button>
+      <button data-r="workdays">Giorni lavorativi</button>
       <button data-r="week">Ogni settimana</button>
       <button data-r="month">Ogni mese</button>
       <button data-r="year">Ogni anno</button>
     </div>
     <div class="dueLabel" id="sRepLabel" style="margin:8px 0 0"></div>
+    <div id="sWdaysBox" class="hidden">
+      <div style="font-size:13px;color:var(--muted);margin:6px 0 4px">Nei giorni</div>
+      <div class="dayPick" id="sWdays"></div>
+    </div>
+    <div id="sMdaysBox" class="hidden">
+      <div style="font-size:13px;color:var(--muted);margin:6px 0 4px">Nei giorni del mese</div>
+      <div class="dayPick month" id="sMdays"></div>
+    </div>
     <div class="row" style="margin-top:8px;flex-wrap:nowrap">
       <span style="flex:0 0 auto;color:var(--muted);font-size:14px">Personalizza: ogni</span>
       <input type="number" id="sEvery" min="1" value="1" inputmode="numeric" style="flex:0 0 64px;width:64px;text-align:center">
@@ -364,16 +376,53 @@ function fmtDue(r) {
 }
 const isLate = r => { const d = dueDate(r); if (!d) return false; return hasTime(r) ? d < new Date() : dayDiff(d) < 0; };
 const FREQ_IT = { day: ["giorno", "giorni"], week: ["settimana", "settimane"], month: ["mese", "mesi"], year: ["anno", "anni"] };
+// repeat: { freq, every, days?: [0-6 = dom..sab] for week, mdays?: [1..31] for month }
+const WD_ORDER = [1, 2, 3, 4, 5, 6, 0];
+const isWorkdays = rep => rep && rep.freq === "week" && (rep.every || 1) === 1 && Array.isArray(rep.days) && rep.days.slice().sort().join() === "1,2,3,4,5";
 function fmtRepeat(rep) {
   if (!rep || !rep.freq || !FREQ_IT[rep.freq]) return "";
+  if (isWorkdays(rep)) return "giorni lavorativi";
   const n = rep.every || 1, w = FREQ_IT[rep.freq];
-  return n === 1 ? "ogni " + w[0] : "ogni " + n + " " + w[1];
+  let s = n === 1 ? "ogni " + w[0] : "ogni " + n + " " + w[1];
+  if (rep.freq === "week" && rep.days && rep.days.length) s += ": " + WD_ORDER.filter(d => rep.days.includes(d)).map(d => WD[d]).join(", ");
+  if (rep.freq === "month" && rep.mdays && rep.mdays.length) s += " il " + rep.mdays.slice().sort((a, b) => a - b).join(", ");
+  return s;
+}
+// next occurrence strictly after d (keeps the time of day)
+function nextOcc(d, rep) {
+  const n = rep.every || 1;
+  if (rep.freq === "week" && rep.days && rep.days.length) {
+    const wk0 = mondayOf(d).getTime();
+    const x = new Date(d);
+    for (let i = 0; i < 7 * n + 7; i++) {
+      x.setDate(x.getDate() + 1);
+      const weeks = Math.round((mondayOf(x).getTime() - wk0) / (7 * 86400000));
+      if (weeks % n === 0 && rep.days.includes(x.getDay())) return new Date(x);
+    }
+  }
+  if (rep.freq === "month" && rep.mdays && rep.mdays.length) {
+    const m0 = d.getFullYear() * 12 + d.getMonth();
+    const x = new Date(d);
+    for (let i = 0; i < 31 * n + 62; i++) {
+      x.setDate(x.getDate() + 1);
+      const months = x.getFullYear() * 12 + x.getMonth() - m0;
+      if (months % n !== 0) continue;
+      const lastDay = new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate();
+      // "31" in a 30-day month falls on its last day
+      if (rep.mdays.some(md => Math.min(md, lastDay) === x.getDate())) return new Date(x);
+    }
+  }
+  return addInterval(d, rep);
 }
 function addInterval(d, rep, sign = 1) {
   const n = (rep.every || 1) * sign, x = new Date(d);
   if (rep.freq === "day") x.setDate(x.getDate() + n);
   else if (rep.freq === "week") x.setDate(x.getDate() + 7 * n);
-  else if (rep.freq === "month") x.setMonth(x.getMonth() + n);
+  else if (rep.freq === "month") {
+    // 31 Jan + 1 month = 28/29 Feb, not 3 Mar
+    const day = x.getDate(); x.setDate(1); x.setMonth(x.getMonth() + n);
+    x.setDate(Math.min(day, new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate()));
+  }
   else if (rep.freq === "year") x.setFullYear(x.getFullYear() + n);
   return x;
 }
@@ -766,8 +815,8 @@ function toggle(r, checked) {
   if (checked && r.repeat && r.repeat.freq) {
     // repeating task: comes back on the next date, with its sub-tasks reset
     const base = dueDate(r) || startOfDay(new Date());
-    let next = addInterval(base, r.repeat);
-    while (startOfDay(next) < startOfDay(new Date())) next = addInterval(next, r.repeat);
+    let next = nextOcc(base, r.repeat), guard = 0;
+    while (startOfDay(next) < startOfDay(new Date()) && guard++ < 2000) next = nextOcc(next, r.repeat);
     const due = toDueString(next, hasTime(r));
     const { subs, text } = parseNotes(r.notes);
     const data = { due, done: false, lastDone: Date.now() };
@@ -808,8 +857,8 @@ function occurrencesBetween(from, to) {
     const d = dueDate(r); if (!d) continue;
     if (d >= from && d < to) add(dayKey(d), { r });
     if (r.repeat && r.repeat.freq) {
-      let n = addInterval(d, r.repeat), guard = 0;
-      while (n < to && guard++ < 400) { if (n >= from) add(dayKey(n), { r, future: true }); n = addInterval(n, r.repeat); }
+      let n = nextOcc(d, r.repeat), guard = 0;
+      while (n < to && guard++ < 400) { if (n >= from) add(dayKey(n), { r, future: true }); n = nextOcc(n, r.repeat); }
     }
   }
   for (const k in map) map[k].sort((a, b) => byDue(a.r, b.r));
@@ -944,11 +993,34 @@ function renderSheet() {
   }
   // repeat
   const rep = r.repeat || {};
-  const preset = rep.freq && (rep.every || 1) === 1 ? rep.freq : (rep.freq ? "custom" : "");
+  const preset = isWorkdays(rep) ? "workdays" : rep.freq && (rep.every || 1) === 1 ? rep.freq : (rep.freq ? "custom" : "");
   document.querySelectorAll("#sRep button").forEach(b => b.classList.toggle("on", b.dataset.r === preset));
   $("sRepLabel").textContent = rep.freq ? "🔁 " + fmtRepeat(rep) : "Non si ripete";
   if (document.activeElement !== $("sEvery")) $("sEvery").value = rep.every || 1;
   if (rep.freq) $("sFreq").value = rep.freq;
+  // weekly: pick weekdays; monthly: pick days of the month
+  $("sWdaysBox").classList.toggle("hidden", rep.freq !== "week");
+  $("sMdaysBox").classList.toggle("hidden", rep.freq !== "month");
+  const wd = $("sWdays"); wd.innerHTML = "";
+  if (rep.freq === "week") WD_ORDER.forEach(n => {
+    const b = document.createElement("button"); b.textContent = WD[n];
+    if ((rep.days || []).includes(n)) b.className = "on";
+    b.onclick = () => {
+      const days = new Set(rep.days || []); days.has(n) ? days.delete(n) : days.add(n);
+      update(tRef(r.id), { repeat: { ...rep, days: days.size ? [...days].sort() : null } });
+    };
+    wd.append(b);
+  });
+  const md = $("sMdays"); md.innerHTML = "";
+  if (rep.freq === "month") for (let n = 1; n <= 31; n++) {
+    const b = document.createElement("button"); b.textContent = n;
+    if ((rep.mdays || []).includes(n)) b.className = "on";
+    b.onclick = () => {
+      const days = new Set(rep.mdays || []); days.has(n) ? days.delete(n) : days.add(n);
+      update(tRef(r.id), { repeat: { ...rep, mdays: days.size ? [...days].sort((a, b) => a - b) : null } });
+    };
+    md.append(b);
+  }
   // sub-tasks
   const p = parseNotes(r.notes);
   const ul = $("sSubs"); ul.innerHTML = "";
@@ -987,8 +1059,18 @@ document.querySelectorAll("#sheet [data-d]").forEach(b => b.onclick = () => {
 });
 $("sDate").onchange = () => { const v = $("sDate").value; const t = $("sTime").value; update(tRef(sheetId), { due: v ? (t ? v + "T" + t : v) : null }); };
 $("sTime").onchange = () => { const v = $("sDate").value || todayStr(); const t = $("sTime").value; update(tRef(sheetId), { due: t ? v + "T" + t : v }); };
-document.querySelectorAll("#sRep button").forEach(b => b.onclick = () => update(tRef(sheetId), { repeat: b.dataset.r ? { freq: b.dataset.r, every: 1 } : null }));
-$("sRepSet").onclick = () => update(tRef(sheetId), { repeat: { freq: $("sFreq").value, every: Math.max(1, parseInt($("sEvery").value) || 1) } });
+document.querySelectorAll("#sRep button").forEach(b => b.onclick = () => {
+  const k = b.dataset.r;
+  const rep = !k ? null : k === "workdays" ? { freq: "week", every: 1, days: [1, 2, 3, 4, 5] } : { freq: k, every: 1 };
+  update(tRef(sheetId), { repeat: rep });
+});
+$("sRepSet").onclick = () => {
+  const old = (cur() && cur().repeat) || {}, freq = $("sFreq").value;
+  const rep = { freq, every: Math.max(1, parseInt($("sEvery").value) || 1) };
+  if (freq === "week" && old.freq === "week" && old.days) rep.days = old.days;      // keep chosen days
+  if (freq === "month" && old.freq === "month" && old.mdays) rep.mdays = old.mdays;
+  update(tRef(sheetId), { repeat: rep });
+};
 $("sNewSub").onkeydown = e => {
   if (e.key !== "Enter") return;
   e.preventDefault();

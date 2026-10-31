@@ -20,7 +20,7 @@ Firebase Realtime Database, project `groceries-d6616` (same as gym/grocery/calen
 | `doneAt` | ms, when closed |
 | `list` | category name; empty = "Inbox" |
 | `due` | `YYYY-MM-DD` = all day; `YYYY-MM-DDTHH:MM` = with time. A time of exactly 00:00 counts as all day. `dueDate` also reads the Italian Shortcuts text format (`1 nov 2026, 14:00`). |
-| `repeat` | `{ freq: day/week/month/year, every: n }` or empty |
+| `repeat` | `{ freq: day/week/month/year, every: n, days?: [0-6, 0 = Sunday] (week only), mdays?: [1-31] (month only) }` or empty. "Giorni lavorativi" = `{ freq: week, every: 1, days: [1,2,3,4,5] }`. `nextOcc` finds the next date; a month day past the month's end (31 in November) falls on the last day. Plain monthly repeats clamp too (31 Jan -> 28 Feb). |
 | `lastDone` | ms, last time a repeating task was ticked |
 | `notes` | text; **sub-tasks live here** in GoodTask's format, one per line: `- [ ] text` / `- [x] text` (`parseNotes` / `buildNotes`) |
 | `source` | `web` / `siri` / `goodtask` (not shown in the UI) |
@@ -61,6 +61,7 @@ Shortcuts cannot read a reminder's repeat rule, so repeats are set by hand in th
 31 Oct 2026: the first full import sent dates as Italian text with the title stuck on (`1 nov 2026, 00:00Affitto`); all 184 were rewritten once to `YYYY-MM-DD[THH:MM]`.
 
 ## Changelog
+- v9 (31 Oct 2026): finer repeats: Giorni lavorativi, weekly on chosen weekdays, monthly on chosen days of the month (works with "ogni N"); month-end clamp fix.
 - v8 (31 Oct 2026): Domani view, sidebar names wrap, Fatto moved to a sticky header in the task sheet.
 - v7 (31 Oct 2026): removed the star / default-list UI and the hint under the add box; phone add only via the + button; N shortcut on computer; undo toast 3 s.
 - v6 (31 Oct 2026): red ✕ delete with undo, colour picker on screen, calendar starts on the current week, removed Programmati, day arrows + swipe in Oggi, fixed the Completati "Elimina tutti" bar.
