@@ -100,9 +100,17 @@
   .rowInner { position:relative; z-index:1; display:flex; align-items:flex-start; gap:12px; padding:10px 12px; background:var(--card); transition:transform .2s; }
   .swipeDel { position:absolute; top:0; right:0; bottom:0; left:0; border:0; border-radius:0; background:#8a2d29; color:#fff; font-weight:600; display:none; text-align:right; padding:0 18px; transition:background .15s; }
   li.swiped .swipeDel, li.armed .swipeDel { background:var(--danger); }
+  .swipeMove { position:absolute; top:0; bottom:0; right:96px; width:96px; z-index:0; border:0; border-radius:0; background:var(--accent); color:#fff; font-weight:600; display:none; }
+  li.armed .swipeMove { visibility:hidden; }
+  .mv { border:0; background:none; color:var(--muted); font-size:15px; padding:0 4px; flex-shrink:0; opacity:.7; }
+  .mv:hover { opacity:1; color:var(--text); }
+  ul.tasks.drop { outline:2px dashed var(--accent); border-radius:6px; }
+  .moveList { display:flex; flex-direction:column; gap:6px; margin-top:10px; }
+  .moveList button { display:flex; align-items:center; gap:10px; padding:10px 12px; font-size:16px; text-align:left; }
+  .moveList button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
   @media (max-width:700px) {
-    .rowInner .del { display:none; }      /* phone: no one-tap ✕, swipe left instead */
-    .swipeDel { display:block; }
+    .rowInner .del, .rowInner .mv { display:none; }      /* phone: no one-tap ✕, swipe left instead */
+    .swipeDel, .swipeMove { display:block; }
   }
   ul.tasks > li:first-child { border-top:0; }
   ul.tasks > li.dragging { opacity:.4; }
@@ -205,7 +213,7 @@
   <main>
     <header>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v18</span>
+      <span class="ver">v19</span>
     </header>
     <div class="dayNav" id="dayNav">
       <button class="ghost navArrow" id="dayToday" style="font-size:13px;min-width:56px">Oggi</button>
@@ -269,6 +277,14 @@
     <div class="swatches" id="swatches"></div>
     <div class="row"><span style="color:var(--muted);font-size:14px">Altro colore</span><input type="color" id="colorPick" style="flex:0 0 60px;height:36px;padding:2px"></div>
     <div class="actions"><span class="sp"></span><button class="primary" id="colorDone">Fatto</button></div>
+  </div>
+</div>
+
+<div class="back hidden" id="moveBack">
+  <div class="sheet" style="max-width:340px">
+    <b id="moveTitle">Sposta in…</b>
+    <div class="moveList" id="moveList"></div>
+    <div class="actions"><span class="sp"></span><button id="moveCancel">Annulla</button></div>
   </div>
 </div>
 
@@ -688,7 +704,29 @@ function dropTarget(el, onDrop) {
   el.addEventListener("dragleave", () => el.classList.remove("drop"));
   el.addEventListener("drop", e => { e.preventDefault(); el.classList.remove("drop"); if (dragId) onDrop(dragId); dragId = null; });
 }
-function moveTaskToList(id, name) { update(tRef(id), { list: name }); toast("→ " + name); }
+function moveTaskToList(id, name) {
+  const r = rows.find(x => x.id === id); if (!r) return;
+  const old = listOf(r); if (old === name) return;
+  update(tRef(id), { list: name });
+  toast("→ " + name, "Annulla", () => update(tRef(id), { list: old }));
+}
+// pick a category for one task (phone: swipe › Sposta; computer: ⇄ or right-click)
+function openMove(id) {
+  const r = rows.find(x => x.id === id); if (!r) return;
+  closeSwiped();
+  $("moveTitle").textContent = "Sposta \"" + (r.title || "") + "\" in…";
+  const box = $("moveList"); box.innerHTML = "";
+  for (const name of allLists()) {
+    const b = document.createElement("button"); if (listOf(r) === name) b.className = "on";
+    const dot = document.createElement("span"); dot.className = "dot"; dot.style.background = colorOf(name);
+    b.append(dot, name);
+    b.onclick = () => { $("moveBack").classList.add("hidden"); moveTaskToList(id, name); };
+    box.append(b);
+  }
+  $("moveBack").classList.remove("hidden");
+}
+$("moveCancel").onclick = () => $("moveBack").classList.add("hidden");
+$("moveBack").onclick = e => { if (e.target === $("moveBack")) $("moveBack").classList.add("hidden"); };
 function moveTaskToDay(id, k) {
   const r = rows.find(x => x.id === id); if (!r) return;
   const d = dueDate(r);
@@ -735,6 +773,7 @@ function groupBlock(key, label, items, opts = {}) {
   if (!isCol) {
     const ul = document.createElement("ul"); ul.className = "tasks";
     items.forEach(r => ul.append(row(r, futureIds.has(r.id) ? { future: true, when: "ripetizione futura" } : {})));
+    if (opts.list) dropTarget(ul, id => moveTaskToList(id, opts.list));   // drop anywhere on the group
     frag.append(ul);
   }
   return frag;
@@ -912,12 +951,17 @@ function row(r, opts = {}) {
   inner.append(rg, body);
   li.append(inner);
   if (!opts.future) {
+    const mv = document.createElement("button"); mv.className = "mv"; mv.title = "Sposta in un'altra categoria"; mv.textContent = "⇄";
+    mv.onclick = e => { e.stopPropagation(); openMove(r.id); };
     const del = document.createElement("button"); del.className = "del"; del.title = "Elimina"; del.textContent = "✕";
     del.onclick = e => { e.stopPropagation(); deleteTask(r.id); };
-    inner.append(del);
+    inner.append(mv, del);
+    li.addEventListener("contextmenu", e => { e.preventDefault(); openMove(r.id); });
     const sw = document.createElement("button"); sw.className = "swipeDel"; sw.textContent = "Elimina";
     sw.onclick = e => { e.stopPropagation(); deleteTask(r.id); };
-    li.append(sw);
+    const sm = document.createElement("button"); sm.className = "swipeMove"; sm.textContent = "Sposta";
+    sm.onclick = e => { e.stopPropagation(); openMove(r.id); };
+    li.append(sw, sm);
     addRowSwipe(li, inner, () => deleteTask(r.id));
   }
   li.onclick = () => { if (li.classList.contains("swiped")) { closeSwiped(); return; } openSheet(r.id); };
@@ -968,7 +1012,7 @@ function addRowSwipe(li, inner, onFull) {
     }
     if (!horiz) return;
     rowSwipeUsed = true;
-    const base = li.classList.contains("swiped") ? -96 : 0;
+    const base = li.classList.contains("swiped") ? -192 : 0;
     const full = li.offsetWidth * 0.6;                      // past this point, letting go deletes
     dx = Math.min(0, base + mx);
     const nowArmed = -dx > full;
@@ -989,7 +1033,7 @@ function addRowSwipe(li, inner, onFull) {
       setTimeout(onFull, 180);
       return;
     }
-    if (dx < -50) { li.classList.add("swiped"); inner.style.transform = "translateX(-96px)"; openRow = li; }
+    if (dx < -50) { li.classList.add("swiped"); inner.style.transform = "translateX(-192px)"; openRow = li; }
     else { li.classList.remove("swiped"); inner.style.transform = ""; if (openRow === li) openRow = null; }
   });
 }
