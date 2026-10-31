@@ -61,6 +61,7 @@ Shortcuts cannot read a reminder's repeat rule, so repeats are set by hand in th
 31 Oct 2026: the first full import sent dates as Italian text with the title stuck on (`1 nov 2026, 00:00Affitto`); all 184 were rewritten once to `YYYY-MM-DD[THH:MM]`.
 
 ## Changelog
+- v15 (31 Oct 2026): future-repeat circles look like the others (were dimmed); tapping one shows a toast instead of ticking. Task sheet date buttons add "Lunedì" / "Venerdì" = next Monday / Friday after today, keeping the time.
 - v14 (31 Oct 2026): repeat marker on task rows is a small grey "↻" text instead of the 🔁 emoji; future repeats just say "ripetizione futura".
 - v13 (31 Oct 2026): iPhone haptics fixed. A programmatic click on a hidden switch no longer ticks; Safari only ticks on a real tap on an `<input switch>`. `hapticTrigger(el)` lays an invisible switch label over: the round tick, "Aggiungi", the + button and the red "Elimina". Limits: the keyboard's Invio key and the full swipe cannot tick on iPhone (not taps); Android still vibrates via `navigator.vibrate`.
 - v12 (31 Oct 2026): phone: after adding, the keyboard closes; haptic tick on add and when a swipe crosses the full-delete point (60% of the row; letting go there deletes, with undo). `haptic()` uses `navigator.vibrate` (Android) or the iOS 18 hidden `<input switch>` trick (iPhone Safari). Day swipes no longer start on a task row in either direction (rows are for delete); the date bar is sticky at the top on phone so days can always be swiped there, or on empty space, or with ‹ ›.

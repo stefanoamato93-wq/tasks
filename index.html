@@ -187,7 +187,7 @@
   <main>
     <header>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v14</span>
+      <span class="ver">v15</span>
     </header>
     <div class="dayNav" id="dayNav">
       <button class="ghost navArrow" id="dayPrev">‹</button>
@@ -260,6 +260,8 @@
     <div class="btns" style="margin-bottom:6px">
       <button data-d="today">Oggi</button>
       <button data-d="tomorrow">Domani</button>
+      <button data-d="mon">Lunedì</button>
+      <button data-d="fri">Venerdì</button>
       <button data-d="none">Nessuna</button>
     </div>
     <div class="btns" style="margin-bottom:8px">
@@ -781,8 +783,8 @@ function row(r, opts = {}) {
   const li = document.createElement("li");
   if (r.done || opts.doneOcc) li.classList.add("done");
   const col = colorOf(listOf(r));
-  const rg = ring(!!r.done, col, false, v => toggle(r, v));
-  if (opts.future) rg.disabled = true;
+  // a future repeat looks the same, but ticking it only explains (tick the real one when it comes)
+  const rg = ring(!!r.done, col, false, v => opts.future ? toast("Ripetizione futura: spunta quella di " + fmtDue(r)) : toggle(r, v));
   const body = document.createElement("div"); body.className = "body";
   const t = document.createElement("div"); t.className = "t"; t.textContent = r.title || "(vuoto)";
   const meta = document.createElement("div"); meta.className = "meta";
@@ -1150,6 +1152,12 @@ document.querySelectorAll("#sheet [data-d]").forEach(b => b.onclick = () => {
   if (k === "none") return setDue(null);
   if (k === "today") return setDue(new Date(), true);
   if (k === "tomorrow") { const t = new Date(); t.setDate(t.getDate() + 1); return setDue(t, true); }
+  if (k === "mon" || k === "fri") {
+    // next Monday / Friday after today (on a Monday, "Lunedì" means next week's)
+    const want = k === "mon" ? 1 : 5, t = new Date();
+    do { t.setDate(t.getDate() + 1); } while (t.getDay() !== want);
+    return setDue(t, true);
+  }
   const base = dueDate(r) || startOfDay(new Date());
   const sign = k[0] === "-" ? -1 : 1;
   const freq = { d: "day", w: "week", m: "month" }[k.slice(-1)];
