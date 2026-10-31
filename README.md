@@ -35,7 +35,7 @@ Firebase Realtime Database, project `groceries-d6616` (same as gym/grocery/calen
 The node is open in the RTDB rules: `"taskApp": { ".read": true, ".write": true }`.
 
 ## Features
-- **Views** (sidebar on computer, bottom bar on phone): Oggi, Calendario, Tutti, Completati, then the categories. Last view is remembered (`localStorage.tasksView`).
+- **Views** (sidebar on computer, bottom bar on phone): Oggi, Domani (due tomorrow + repeats falling tomorrow, grouped by category), Calendario, Tutti, Completati, then the categories. Category names in the sidebar wrap instead of being cut (sidebar 220-320 px wide). The task sheet keeps the title and **Fatto** in a sticky header at the top. Last view is remembered (`localStorage.tasksView`).
 - **Day bar in Oggi:** ‹ › arrows (and swipe left/right on phone) move to another day; "Oggi" jumps back. Today shows due + late tasks; another day shows tasks due that day plus future repeats falling on it (tick disabled). Quick add uses the shown day.
 - **Delete:** red ✕ on every task deletes at once; the toast offers "Annulla" for 3 s. Same for the sheet's Elimina and for "Elimina tutti" in Completati (that one still asks once, since it is bulk).
 - **Oggi / Tutti** are grouped by category (name + colour dot + count), in the user's order. **A single category** is grouped by day (In ritardo, then one header per day, then Senza data). Group headers collapse (state in `localStorage.tasksCollapsed`).
@@ -61,6 +61,7 @@ Shortcuts cannot read a reminder's repeat rule, so repeats are set by hand in th
 31 Oct 2026: the first full import sent dates as Italian text with the title stuck on (`1 nov 2026, 00:00Affitto`); all 184 were rewritten once to `YYYY-MM-DD[THH:MM]`.
 
 ## Changelog
+- v8 (31 Oct 2026): Domani view, sidebar names wrap, Fatto moved to a sticky header in the task sheet.
 - v7 (31 Oct 2026): removed the star / default-list UI and the hint under the add box; phone add only via the + button; N shortcut on computer; undo toast 3 s.
 - v6 (31 Oct 2026): red ✕ delete with undo, colour picker on screen, calendar starts on the current week, removed Programmati, day arrows + swipe in Oggi, fixed the Completati "Elimina tutti" bar.
 - v5 (31 Oct 2026): dark mode, GoodTask-like layout (category groups, round ticks, bottom bar on phone), task sheet with quick date/category/repeat/duplicate, drag & drop, rename/reorder/default categories, separate Completati view with "Elimina tutti", search, per-day groups inside a category, new tasks and Siri default to the ★ category for today. Removed the Siri setup panel.
