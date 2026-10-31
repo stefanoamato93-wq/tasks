@@ -185,15 +185,24 @@
 
   /* bottom bar (phone) */
   .bottom { display:none; }
+  .menuBtn, .navBack { display:none; }
   @media (max-width:700px) {
-    .wrap { display:block; padding-bottom:110px; }
-    nav { display:none; }
-    nav.open { display:block; position:fixed; inset:0; z-index:9; background:var(--bg); padding:16px; overflow:auto; }
-    .bottom { display:flex; position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom)); gap:10px; z-index:8; }
-    .bottom .bar { flex:1; display:flex; justify-content:space-around; background:var(--card2); border-radius:28px; padding:6px; }
-    .bottom .bar button { border:0; background:none; font-size:20px; padding:6px 10px; border-radius:20px; }
-    .bottom .bar button.on { background:#48484c; }
-    .bottom .plus { width:52px; height:52px; border-radius:50%; font-size:26px; padding:0; background:var(--card2); border:0; }
+    body { font-size:15px; }
+    input, select, textarea { font-size:16px; }   /* 16px stops iPhone from zooming in on tap */
+    header h1 { font-size:19px; }
+    .dayNav .today { font-size:15px; }
+    .wrap { display:block; padding-bottom:90px; }
+    /* phone: the lists menu slides in from the left */
+    .menuBtn { display:block; font-size:22px; padding:0 8px 0 0; line-height:1; }
+    nav { display:block; position:fixed; top:0; bottom:0; left:0; width:80%; max-width:300px; min-width:0; z-index:11; background:var(--card); padding:calc(16px + env(safe-area-inset-top)) 12px 16px; overflow:auto; transform:translateX(-105%); transition:transform .25s; }
+    nav.open { transform:none; box-shadow:4px 0 24px rgba(0,0,0,.6); }
+    nav.open + .navBack { display:block; position:fixed; inset:0; z-index:10; background:rgba(0,0,0,.5); }
+    /* phone: search box shows only after a pull down at the top */
+    #searchRow { display:none !important; }
+    body.searchOn #searchRow { display:flex !important; }
+    .bottom { display:block; position:fixed; right:16px; bottom:calc(16px + env(safe-area-inset-bottom)); z-index:8; }
+    .bottom .bar { display:none; }
+    .bottom .plus { width:52px; height:52px; border-radius:50%; font-size:26px; padding:0; background:var(--accent); color:#fff; border:0; box-shadow:0 4px 16px rgba(0,0,0,.5); }
     .cal .day { min-height:54px; }
     .cal .ev, .cal .more { display:none; }
     .cal .dots { display:flex; }
@@ -211,10 +220,12 @@
       <button id="newListBtn" class="hidden">+ Nuovo</button>
     </div>
   </nav>
+  <div class="navBack" id="navBack"></div>
   <main>
     <header>
+      <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v20</span>
+      <span class="ver">v21</span>
     </header>
     <div class="dayNav" id="dayNav">
       <button class="ghost navArrow" id="dayToday" style="font-size:13px;min-width:56px">Oggi</button>
@@ -222,7 +233,7 @@
       <span class="today" id="todayLabel"></span>
       <button class="ghost navArrow" id="dayNext">›</button>
     </div>
-    <div class="row" style="margin-bottom:10px;flex-wrap:nowrap">
+    <div class="row" id="searchRow" style="margin-bottom:10px;flex-wrap:nowrap">
       <input type="search" id="q" placeholder="🔍 Cerca task…" autocomplete="off" style="flex:1">
     </div>
 
@@ -699,6 +710,8 @@ $("newListBtn").onclick = () => {
 };
 $("editListsBtn").onclick = () => { editLists = !editLists; renderAll(); };
 $("navClose").onclick = () => $("nav").classList.remove("open");
+$("navBack").onclick = () => $("nav").classList.remove("open");
+$("menuBtn").onclick = () => $("nav").classList.add("open");
 
 // ---------- drag & drop (computer) ----------
 let dragId = null;
@@ -819,6 +832,19 @@ function dayTitle(k) {
 // ---------- search ----------
 let q = "";
 $("q").oninput = () => { q = $("q").value.trim().toLowerCase(); renderAll(); };
+// phone: pull down at the top shows the search box; scrolling down hides it again (if empty)
+{
+  const phone = () => matchMedia("(max-width:700px)").matches;
+  let pullY = null;
+  addEventListener("touchstart", e => { pullY = scrollY <= 0 && e.touches.length === 1 ? e.touches[0].clientY : null; }, { passive: true });
+  addEventListener("touchmove", e => {
+    if (pullY !== null && phone() && e.touches[0].clientY - pullY > 60) { document.body.classList.add("searchOn"); pullY = null; }
+  }, { passive: true });
+  addEventListener("scroll", () => {
+    if (phone() && scrollY > 80 && !q && document.activeElement !== $("q")) document.body.classList.remove("searchOn");
+  }, { passive: true });
+  $("q").addEventListener("blur", () => { if (!q) document.body.classList.remove("searchOn"); });
+}
 function renderSearch() {
   const box = $("listView"); box.innerHTML = "";
   const words = q.split(/\s+/).filter(Boolean);
