@@ -12,17 +12,17 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Tasks">
 <style>
-  :root { --bg:#f5f6f8; --card:#fff; --text:#1c1f24; --muted:#6b7280; --line:#e5e7eb; --accent:#2f6fed; --danger:#d93025; --late:#d93025; --chip:#eef2fd; }
+  :root { --bg:#f5f6f8; --card:#fff; --text:#1c1f24; --muted:#6b7280; --line:#e5e7eb; --accent:#2f6fed; --danger:#d93025; --late:#d93025; --soft:#eef2fd; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#111317; --card:#1b1e24; --text:#e8eaed; --muted:#9aa0a6; --line:#2c3038; --chip:#1f2a44; }
+    :root { --bg:#111317; --card:#1b1e24; --text:#e8eaed; --muted:#9aa0a6; --line:#2c3038; --soft:#1f2a44; }
   }
   * { box-sizing:border-box; }
   body { margin:0; font:16px/1.4 -apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--text); }
-  .wrap { max-width:1000px; margin:0 auto; padding:16px 16px 60px; display:flex; gap:20px; }
-  nav { width:220px; flex-shrink:0; }
+  .wrap { max-width:1100px; margin:0 auto; padding:16px 16px 60px; display:flex; gap:20px; }
+  nav { width:230px; flex-shrink:0; }
   main { flex:1; min-width:0; }
   header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
-  header h1 { font-size:22px; margin:0; flex:1; }
+  header h1 { font-size:22px; margin:0; flex:1; display:flex; align-items:center; gap:8px; }
   .ver { font-size:12px; color:var(--muted); }
   button { font:inherit; border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:8px; padding:7px 12px; cursor:pointer; }
   button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
@@ -32,24 +32,33 @@
   form.add { display:flex; gap:8px; margin-bottom:14px; }
 
   .lists { list-style:none; margin:0; padding:0; }
-  .lists li { display:flex; justify-content:space-between; padding:7px 10px; border-radius:8px; cursor:pointer; }
+  .lists li { display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:8px; cursor:pointer; }
   .lists li:hover { background:var(--card); }
-  .lists li.on { background:var(--accent); color:#fff; }
-  .lists li .n { color:inherit; opacity:.7; font-size:14px; }
+  .lists li.on { background:var(--soft); font-weight:600; }
+  .lists li .name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lists li .n { color:var(--muted); font-size:14px; }
   .lists .sep { height:1px; background:var(--line); margin:6px 4px; padding:0; cursor:default; }
+  .dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; display:inline-block; }
+  .lists .dot { width:14px; height:14px; border:2px solid transparent; }
+  .lists .dot:hover { border-color:var(--text); }
   .menuBtn { display:none; }
 
   h3 { font-size:14px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:18px 4px 6px; }
   h3.late { color:var(--late); }
-  ul.tasks { list-style:none; margin:0; padding:0; background:var(--card); border:1px solid var(--line); border-radius:10px; }
-  ul.tasks li { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border-top:1px solid var(--line); }
-  ul.tasks li:first-child { border-top:0; }
-  ul.tasks li input[type=checkbox] { width:20px; height:20px; margin-top:2px; accent-color:var(--accent); flex-shrink:0; }
-  .body { flex:1; min-width:0; cursor:pointer; }
-  .t { word-break:break-word; }
-  .meta { font-size:13px; color:var(--muted); display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:2px; }
+  ul.tasks { list-style:none; margin:0; padding:0; background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  ul.tasks > li { display:flex; align-items:flex-start; gap:10px; padding:10px 12px 10px 9px; border-top:1px solid var(--line); border-left:4px solid transparent; }
+  ul.tasks > li:first-child { border-top:0; }
+  input[type=checkbox] { width:20px; height:20px; margin-top:2px; accent-color:var(--accent); flex-shrink:0; }
+  .body { flex:1; min-width:0; }
+  .t { word-break:break-word; cursor:pointer; }
+  .meta { font-size:13px; color:var(--muted); display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:2px; align-items:center; }
   .meta .late { color:var(--late); }
-  .chip { background:var(--chip); color:var(--accent); border-radius:6px; padding:0 6px; }
+  .chip { border-radius:6px; padding:0 6px; color:#fff; font-size:12px; }
+  .subBtn { border:0; background:var(--soft); color:var(--accent); border-radius:6px; padding:0 6px; font-size:12px; }
+  ul.subs { list-style:none; margin:6px 0 0; padding:0; }
+  ul.subs li { display:flex; align-items:center; gap:8px; padding:3px 0; font-size:15px; }
+  ul.subs li input { width:17px; height:17px; margin:0; }
+  ul.subs li.ok span { text-decoration:line-through; color:var(--muted); }
   li.done .t { text-decoration:line-through; color:var(--muted); }
   .empty { padding:14px; color:var(--muted); text-align:center; }
   details { margin-top:16px; }
@@ -57,12 +66,36 @@
   .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; margin-top:10px; }
   code { font-size:12px; word-break:break-all; background:var(--bg); padding:2px 4px; border-radius:4px; }
 
+  /* calendar */
+  .calBar { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .calBar b { flex:1; font-size:18px; text-transform:capitalize; }
+  .cal { display:grid; grid-template-columns:repeat(7, 1fr); background:var(--line); gap:1px; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  .cal .wd { background:var(--card); text-align:center; font-size:12px; color:var(--muted); padding:4px 0; }
+  .cal .day { background:var(--card); min-height:92px; padding:4px; cursor:pointer; min-width:0; }
+  .cal .day.other { opacity:.45; }
+  .cal .day.sel { outline:2px solid var(--accent); outline-offset:-2px; }
+  .cal .num { font-size:13px; color:var(--muted); }
+  .cal .day.today .num { background:var(--accent); color:#fff; border-radius:10px; padding:0 6px; display:inline-block; }
+  .cal .ev { font-size:12px; border-radius:4px; padding:0 4px; margin-top:2px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cal .ev.ok { opacity:.5; text-decoration:line-through; }
+  .cal .more { font-size:11px; color:var(--muted); margin-top:2px; }
+  .cal .dots { display:none; gap:2px; flex-wrap:wrap; margin-top:3px; }
+  @media (max-width:700px) {
+    .cal .day { min-height:54px; }
+    .cal .ev, .cal .more { display:none; }
+    .cal .dots { display:flex; }
+    .cal .dots .dot { width:7px; height:7px; }
+  }
+
   .back { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:flex-end; justify-content:center; z-index:10; }
   .sheet { background:var(--card); width:100%; max-width:520px; border-radius:14px 14px 0 0; padding:16px; max-height:90vh; overflow:auto; }
   @media (min-width:700px) { .back { align-items:center; } .sheet { border-radius:14px; } }
   .sheet label { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
   .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
   .row > * { flex:1; min-width:0; }
+  #eSubs li { display:flex; align-items:center; gap:8px; padding:3px 0; }
+  #eSubs li input[type=text] { padding:5px 8px; }
+  #eSubs li .x { border:0; background:none; color:var(--muted); padding:2px 6px; }
   .actions { display:flex; gap:8px; margin-top:16px; }
   .actions .sp { flex:1; }
   .confirm { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:20; }
@@ -89,7 +122,7 @@
     <header>
       <button class="menuBtn" id="menuBtn">☰</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v3</span>
+      <span class="ver">v4</span>
     </header>
 
     <form class="add" id="addForm">
@@ -97,12 +130,25 @@
       <button class="primary" type="submit">Aggiungi</button>
     </form>
 
-    <div id="groups"><div class="empty">Carico…</div></div>
+    <div id="calendar" class="hidden">
+      <div class="calBar">
+        <button id="calPrev">‹</button>
+        <b id="calMonth"></b>
+        <button id="calToday">Oggi</button>
+        <button id="calNext">›</button>
+      </div>
+      <div class="cal" id="calGrid"></div>
+      <h3 id="calDayTitle"></h3>
+      <ul class="tasks" id="calDay"></ul>
+    </div>
 
-    <details id="doneBox">
-      <summary>Completati (<span id="doneCount">0</span>)</summary>
-      <ul class="tasks" id="done" style="margin-top:8px"></ul>
-    </details>
+    <div id="listView">
+      <div id="groups"><div class="empty">Carico…</div></div>
+      <details id="doneBox">
+        <summary>Completati (<span id="doneCount">0</span>)</summary>
+        <ul class="tasks" id="done" style="margin-top:8px"></ul>
+      </details>
+    </div>
 
     <details>
       <summary>Siri setup</summary>
@@ -113,12 +159,14 @@
           <li><b>URL</b>: <code id="siriUrl"></code></li>
           <li><b>Ottieni contenuti dell'URL</b>, Metodo POST, Corpo JSON:<br>
             <code>title</code> = Richiedi input, <code>done</code> = Falso, <code>source</code> = <code>siri</code><br>
-            Facoltativi: <code>list</code> (nome elenco), <code>due</code> (data ISO 8601).</li>
+            Facoltativi: <code>list</code> (nome elenco), <code>due</code> (data).</li>
         </ol>
       </div>
     </details>
   </main>
 </div>
+
+<input type="color" id="colorPick" style="position:fixed;left:-100px;top:0;width:1px;height:1px;opacity:0">
 
 <div class="back hidden" id="editBack">
   <div class="sheet" id="sheet">
@@ -143,6 +191,12 @@
         <option value="year">Anni</option>
       </select>
       <span id="everyWrap" class="row" style="flex:1">ogni <input type="number" id="eEvery" min="1" value="1" style="width:70px;flex:0"></span>
+    </div>
+    <label>Sotto-task</label>
+    <ul class="subs" id="eSubs"></ul>
+    <div class="row" style="margin-top:4px">
+      <input type="text" id="eNewSub" placeholder="Aggiungi sotto-task…">
+      <button type="button" id="eAddSub" style="flex:0">+</button>
     </div>
     <label>Note</label>
     <textarea id="eNotes" rows="3"></textarea>
@@ -189,27 +243,33 @@ $("siriUrl").textContent = firebaseConfig.databaseURL + "/taskApp/tasks.json";
 
 const INBOX = "Inbox";
 let rows = [];
-let view = localStorage.getItem("tasksView") || "@today";   // "@all" | "@today" | "@planned" | list name
+let listMeta = {};                                          // taskApp/lists/{key}: { name, color }
+let view = localStorage.getItem("tasksView") || "@today";   // "@today" | "@planned" | "@all" | "@calendar" | list name
+let calMonth = new Date(); calMonth.setDate(1);
+let calSel = null;                                          // "YYYY-MM-DD"
+const expanded = new Set();                                 // task ids with sub-tasks shown inline
 
 // ---------- dates ----------
 const pad = n => String(n).padStart(2, "0");
-// due is stored as an ISO string. Date-only "YYYY-MM-DD" = all-day.
+const MO = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
+const MO_FULL = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
+const WD = ["dom", "lun", "mar", "mer", "gio", "ven", "sab"];
+// due is stored as "YYYY-MM-DD" (all day) or "YYYY-MM-DDTHH:MM". Also reads the Italian Shortcuts format "1 nov 2026, 14:00".
 function dueDate(r) {
   if (!r.due) return null;
-  const s = String(r.due);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); }
-  const d = new Date(s.replace(" ", "T"));
+  const s = String(r.due).trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);
+  if (m) return new Date(+m[1], m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0));
+  m = s.match(/^(\d{1,2}) (\w{3})\w* (\d{4})(?:,? (\d{1,2})[:.](\d{2}))?/);
+  if (m && MO.indexOf(m[2].toLowerCase()) >= 0) return new Date(+m[3], MO.indexOf(m[2].toLowerCase()), +m[1], +(m[4] || 0), +(m[5] || 0));
+  const d = new Date(s);
   return isNaN(d) ? null : d;
 }
-// a time of exactly 00:00 (how Shortcuts sends all-day reminders) counts as "no time"
-const hasTime = r => {
-  if (!r.due || r.allDay || /^\d{4}-\d{2}-\d{2}$/.test(String(r.due))) return false;
-  const d = dueDate(r); return !!d && (d.getHours() !== 0 || d.getMinutes() !== 0);
-};
+// a time of exactly 00:00 counts as "no time"
+const hasTime = r => { const d = dueDate(r); return !!d && (d.getHours() !== 0 || d.getMinutes() !== 0); };
 const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 const dayDiff = d => Math.round((startOfDay(d) - startOfDay(new Date())) / 86400000);
-const WD = ["dom", "lun", "mar", "mer", "gio", "ven", "sab"];
-const MO = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
+const dayKey = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
 function fmtDue(r) {
   const d = dueDate(r); if (!d) return "";
   const n = dayDiff(d);
@@ -222,9 +282,8 @@ function fmtDue(r) {
 const isLate = r => { const d = dueDate(r); if (!d) return false; return hasTime(r) ? d < new Date() : dayDiff(d) < 0; };
 const FREQ_IT = { day: ["giorno", "giorni"], week: ["settimana", "settimane"], month: ["mese", "mesi"], year: ["anno", "anni"] };
 function fmtRepeat(rep) {
-  if (!rep || !rep.freq) return "";
+  if (!rep || !rep.freq || !FREQ_IT[rep.freq]) return "";
   const n = rep.every || 1, w = FREQ_IT[rep.freq];
-  if (!w) return "";
   return n === 1 ? "ogni " + w[0] : "ogni " + n + " " + w[1];
 }
 function addInterval(d, rep) {
@@ -235,10 +294,31 @@ function addInterval(d, rep) {
   else if (rep.freq === "year") x.setFullYear(x.getFullYear() + n);
   return x;
 }
-function toDueString(d, withTime) {
-  const day = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
-  return withTime ? day + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes()) : day;
+const toDueString = (d, withTime) => dayKey(d) + (withTime ? "T" + pad(d.getHours()) + ":" + pad(d.getMinutes()) : "");
+
+// ---------- sub-tasks (GoodTask format inside notes: "- [ ] text" / "- [x] text") ----------
+const SUB_RE = /^\s*[-*]\s*\[( |x|X)\]\s?(.*)$/;
+function parseNotes(notes) {
+  const subs = [], text = [];
+  for (const line of String(notes || "").split(/\r?\n/)) {
+    const m = line.match(SUB_RE);
+    if (m) subs.push({ ok: m[1] !== " ", t: m[2] });
+    else text.push(line);
+  }
+  return { subs, text: text.join("\n").trim() };
 }
+function buildNotes(text, subs) {
+  const lines = subs.filter(s => s.t.trim()).map(s => "- [" + (s.ok ? "x" : " ") + "] " + s.t.trim());
+  const out = [text.trim(), lines.join("\n")].filter(Boolean).join("\n\n");
+  return out || null;
+}
+
+// ---------- lists & colours ----------
+const PALETTE = ["#e5484d", "#f76b15", "#e2a400", "#30a46c", "#12a594", "#0090ff", "#3e63dd", "#8e4ec6", "#d6409f", "#978365", "#6f6e77"];
+const listOf = r => (r.list && String(r.list).trim()) || INBOX;
+const listKey = name => name.replace(/[.#$\[\]\/]/g, "_");
+function hashColor(name) { let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0; return PALETTE[h % PALETTE.length]; }
+const colorOf = name => (listMeta[listKey(name)] && listMeta[listKey(name)].color) || hashColor(name);
 
 // ---------- data ----------
 onValue(tasksRef, snap => {
@@ -247,21 +327,24 @@ onValue(tasksRef, snap => {
   for (const id in all) {
     const x = all[id] || {};
     rows.push({ id, ...x });
-    // Siri saves without a date: stamp it the first time we see it
     if (!x.created) update(tRef(id), { created: serverTimestamp() }).catch(() => {});
   }
   renderAll();
 }, e => { $("groups").innerHTML = `<div class="empty">Errore: ${e.message}</div>`; });
+onValue(ref(db, "taskApp/lists"), snap => { listMeta = snap.val() || {}; renderAll(); }, () => {});
 
-const listOf = r => (r.list && String(r.list).trim()) || INBOX;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const isSpecial = v => v.startsWith("@");
 
 function renderAll() {
   renderLists();
-  renderTasks();
+  const cal = view === "@calendar";
+  $("calendar").classList.toggle("hidden", !cal);
+  $("listView").classList.toggle("hidden", cal);
+  if (cal) renderCalendar(); else renderTasks();
   const names = [...new Set(rows.map(listOf))].sort((a, b) => a.localeCompare(b));
   $("listNames").innerHTML = names.map(n => `<option value="${esc(n)}">`).join("");
 }
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 function renderLists() {
   const open = rows.filter(r => !r.done);
@@ -269,22 +352,38 @@ function renderLists() {
   open.forEach(r => counts[listOf(r)] = (counts[listOf(r)] || 0) + 1);
   const today = open.filter(r => { const d = dueDate(r); return d && dayDiff(d) <= 0; }).length;
   const planned = open.filter(r => dueDate(r)).length;
-  const names = Object.keys(counts).sort((a, b) => a === INBOX ? -1 : b === INBOX ? 1 : a.localeCompare(b));
+  const names = Object.keys(counts).sort((a, b) => a === INBOX ? -1 : b === INBOX ? 1 : a.localeCompare(b, "it", { numeric: true }));
   const items = [
-    ["@today", "📅 Oggi", today], ["@planned", "🗓️ Programmati", planned], ["@all", "📋 Tutti", open.length], ["sep"],
+    ["@today", "📅 Oggi", today], ["@calendar", "🗓️ Calendario", ""], ["@planned", "⏰ Programmati", planned], ["@all", "📋 Tutti", open.length], ["sep"],
     ...names.map(n => [n, n, counts[n]])
   ];
-  if (view !== "@today" && view !== "@planned" && view !== "@all" && !counts[view]) view = "@today";
-  $("lists").innerHTML = "";
+  if (!isSpecial(view) && !counts[view]) view = "@today";
+  const ul = $("lists"); ul.innerHTML = "";
   for (const [key, label, n] of items) {
     const li = document.createElement("li");
-    if (key === "sep") { li.className = "sep"; $("lists").append(li); continue; }
+    if (key === "sep") { li.className = "sep"; ul.append(li); continue; }
     if (key === view) li.className = "on";
-    li.innerHTML = `<span>${esc(label)}</span><span class="n">${n || ""}</span>`;
+    if (!isSpecial(key)) {
+      const dot = document.createElement("span"); dot.className = "dot"; dot.style.background = colorOf(key); dot.title = "Cambia colore";
+      dot.onclick = e => { e.stopPropagation(); pickColor(key); };
+      li.append(dot);
+    }
+    const nm = document.createElement("span"); nm.className = "name"; nm.textContent = label;
+    const cnt = document.createElement("span"); cnt.className = "n"; cnt.textContent = n || "";
+    li.append(nm, cnt);
     li.onclick = () => { view = key; localStorage.setItem("tasksView", view); $("nav").classList.remove("open"); renderAll(); };
-    $("lists").append(li);
+    ul.append(li);
   }
-  $("viewTitle").textContent = view === "@today" ? "Oggi" : view === "@planned" ? "Programmati" : view === "@all" ? "Tutti" : view;
+  const h = $("viewTitle"); h.innerHTML = "";
+  if (!isSpecial(view)) { const d = document.createElement("span"); d.className = "dot"; d.style.background = colorOf(view); h.append(d); }
+  h.append(view === "@today" ? "Oggi" : view === "@planned" ? "Programmati" : view === "@all" ? "Tutti" : view === "@calendar" ? "Calendario" : view);
+}
+
+function pickColor(name) {
+  const p = $("colorPick");
+  p.value = colorOf(name);
+  p.oninput = () => update(ref(db, "taskApp/lists/" + listKey(name)), { name, color: p.value });
+  p.click();
 }
 
 function inView(r) {
@@ -293,17 +392,16 @@ function inView(r) {
   if (view === "@planned") return !!dueDate(r);
   return listOf(r) === view;
 }
+const byDue = (a, b) => {
+  const da = dueDate(a), dbb = dueDate(b);
+  if (da && dbb) return da - dbb;
+  if (da) return -1; if (dbb) return 1;
+  return (b.created || 0) - (a.created || 0);
+};
 
 function renderTasks() {
   const vis = rows.filter(inView);
-  const open = vis.filter(r => !r.done);
-  const byDue = (a, b) => {
-    const da = dueDate(a), dbb = dueDate(b);
-    if (da && dbb) return da - dbb;
-    if (da) return -1; if (dbb) return 1;
-    return (b.created || 0) - (a.created || 0);
-  };
-  open.sort(byDue);
+  const open = vis.filter(r => !r.done).sort(byDue);
   const groups = [["In ritardo", [], "late"], ["Oggi", []], ["Domani", []], ["Prossimi 7 giorni", []], ["Più avanti", []], ["Senza data", []]];
   for (const r of open) {
     const d = dueDate(r);
@@ -329,36 +427,59 @@ function renderTasks() {
   done.slice(0, 200).forEach(r => $("done").append(row(r)));
 }
 
-function row(r) {
+function row(r, opts = {}) {
   const li = document.createElement("li");
-  if (r.done) li.className = "done";
+  if (r.done || opts.doneOcc) li.className = "done";
+  const col = colorOf(listOf(r));
+  li.style.borderLeftColor = col;
   const cb = document.createElement("input");
   cb.type = "checkbox"; cb.checked = !!r.done;
   cb.onchange = () => toggle(r, cb.checked);
+  if (opts.future) cb.disabled = true;      // a projected future repeat: tick the real one
   const body = document.createElement("div"); body.className = "body";
   const t = document.createElement("div"); t.className = "t"; t.textContent = r.title || "(vuoto)";
+  t.onclick = () => openEditor(r);
   const meta = document.createElement("div"); meta.className = "meta";
-  const due = fmtDue(r);
-  if (due) { const s = document.createElement("span"); s.textContent = due; if (!r.done && isLate(r)) s.className = "late"; meta.append(s); }
+  const due = opts.when || fmtDue(r);
+  if (due) { const s = document.createElement("span"); s.textContent = due; if (!r.done && !opts.future && isLate(r)) s.className = "late"; meta.append(s); }
   const rep = fmtRepeat(r.repeat);
   if (rep) { const s = document.createElement("span"); s.textContent = "🔁 " + rep; meta.append(s); }
-  if (view.startsWith("@")) { const s = document.createElement("span"); s.className = "chip"; s.textContent = listOf(r); meta.append(s); }
-  if (r.notes) { const s = document.createElement("span"); s.textContent = "📝"; meta.append(s); }
-  if (r.source === "siri") { const s = document.createElement("span"); s.textContent = "🎙️"; meta.append(s); }
+  if (isSpecial(view)) { const s = document.createElement("span"); s.className = "chip"; s.style.background = col; s.textContent = listOf(r); meta.append(s); }
+  const { subs, text } = parseNotes(r.notes);
+  if (subs.length) {
+    const b = document.createElement("button"); b.className = "subBtn";
+    b.textContent = "☑ " + subs.filter(s => s.ok).length + "/" + subs.length + (expanded.has(r.id) ? " ▴" : " ▾");
+    b.onclick = () => { expanded.has(r.id) ? expanded.delete(r.id) : expanded.add(r.id); renderAll(); };
+    meta.append(b);
+  }
+  if (text) { const s = document.createElement("span"); s.textContent = "📝"; meta.append(s); }
   body.append(t); if (meta.childNodes.length) body.append(meta);
-  body.onclick = () => openEditor(r);
+  if (subs.length && expanded.has(r.id)) {
+    const ul = document.createElement("ul"); ul.className = "subs";
+    subs.forEach((s, i) => {
+      const sl = document.createElement("li"); if (s.ok) sl.className = "ok";
+      const c = document.createElement("input"); c.type = "checkbox"; c.checked = s.ok;
+      c.onchange = () => { subs[i].ok = c.checked; update(tRef(r.id), { notes: buildNotes(text, subs) }); };
+      const sp = document.createElement("span"); sp.textContent = s.t;
+      sl.append(c, sp); ul.append(sl);
+    });
+    body.append(ul);
+  }
   li.append(cb, body);
   return li;
 }
 
 function toggle(r, checked) {
   if (checked && r.repeat && r.repeat.freq) {
-    // repeating task: move the due date forward instead of closing it
+    // repeating task: move the due date forward and reset its sub-tasks
     const base = dueDate(r) || startOfDay(new Date());
     let next = addInterval(base, r.repeat);
     while (startOfDay(next) < startOfDay(new Date())) next = addInterval(next, r.repeat);
     const due = toDueString(next, hasTime(r));
-    update(tRef(r.id), { due, done: false, lastDone: Date.now() });
+    const { subs, text } = parseNotes(r.notes);
+    const data = { due, done: false, lastDone: Date.now() };
+    if (subs.length) data.notes = buildNotes(text, subs.map(s => ({ ...s, ok: false })));
+    update(tRef(r.id), data);
     toast("Prossima: " + fmtDue({ due }));
     return;
   }
@@ -368,54 +489,136 @@ function toggle(r, checked) {
 let toastT;
 function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.remove("hidden"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.add("hidden"), 2500); }
 
+// ---------- calendar ----------
+// Open tasks on their due day, plus future repeats of repeating tasks. Completed tasks on their done day.
+function occurrencesBetween(from, to) {
+  const map = {};
+  const add = (k, item) => (map[k] = map[k] || []).push(item);
+  for (const r of rows) {
+    if (r.done) {
+      const d = r.doneAt ? new Date(r.doneAt) : dueDate(r);
+      if (d && d >= from && d < to) add(dayKey(d), { r, doneOcc: true });
+      continue;
+    }
+    const d = dueDate(r); if (!d) continue;
+    if (d >= from && d < to) add(dayKey(d), { r });
+    if (r.repeat && r.repeat.freq) {
+      let n = addInterval(d, r.repeat), guard = 0;
+      while (n < to && guard++ < 400) { if (n >= from) add(dayKey(n), { r, future: true, date: n }); n = addInterval(n, r.repeat); }
+    }
+  }
+  for (const k in map) map[k].sort((a, b) => byDue(a.r, b.r));
+  return map;
+}
+
+function renderCalendar() {
+  const y = calMonth.getFullYear(), m = calMonth.getMonth();
+  $("calMonth").textContent = MO_FULL[m] + " " + y;
+  const first = new Date(y, m, 1);
+  const start = new Date(y, m, 1 - ((first.getDay() + 6) % 7));          // Monday start
+  const end = new Date(start); end.setDate(start.getDate() + 42);
+  const occ = occurrencesBetween(start, end);
+  const grid = $("calGrid"); grid.innerHTML = "";
+  ["lun", "mar", "mer", "gio", "ven", "sab", "dom"].forEach(w => { const d = document.createElement("div"); d.className = "wd"; d.textContent = w; grid.append(d); });
+  const todayK = dayKey(new Date());
+  if (!calSel) calSel = todayK;
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    const k = dayKey(d), items = occ[k] || [];
+    const cell = document.createElement("div");
+    cell.className = "day" + (d.getMonth() !== m ? " other" : "") + (k === todayK ? " today" : "") + (k === calSel ? " sel" : "");
+    cell.innerHTML = `<span class="num">${d.getDate()}</span>`;
+    items.slice(0, 3).forEach(it => {
+      const e = document.createElement("div"); e.className = "ev" + (it.doneOcc ? " ok" : "");
+      e.style.background = colorOf(listOf(it.r)); e.textContent = it.r.title || "";
+      cell.append(e);
+    });
+    if (items.length > 3) { const mo = document.createElement("div"); mo.className = "more"; mo.textContent = "+" + (items.length - 3); cell.append(mo); }
+    const dots = document.createElement("div"); dots.className = "dots";
+    items.slice(0, 6).forEach(it => { const s = document.createElement("span"); s.className = "dot"; s.style.background = colorOf(listOf(it.r)); dots.append(s); });
+    cell.append(dots);
+    cell.onclick = () => { calSel = k; renderCalendar(); };
+    grid.append(cell);
+  }
+  // selected day list
+  const [sy, sm, sd] = calSel.split("-").map(Number);
+  const selDate = new Date(sy, sm - 1, sd);
+  const selItems = (occurrencesBetween(selDate, new Date(sy, sm - 1, sd + 1))[calSel]) || [];
+  $("calDayTitle").textContent = WD[selDate.getDay()] + " " + sd + " " + MO_FULL[sm - 1] + " · " + selItems.length;
+  const ul = $("calDay"); ul.innerHTML = "";
+  if (!selItems.length) ul.innerHTML = `<li class="empty">Niente in questo giorno</li>`;
+  selItems.forEach(it => ul.append(row(it.r, { future: it.future, doneOcc: it.doneOcc, when: it.future ? "🔁 ripetizione" : "" })));
+}
+$("calPrev").onclick = () => { calMonth.setMonth(calMonth.getMonth() - 1); renderCalendar(); };
+$("calNext").onclick = () => { calMonth.setMonth(calMonth.getMonth() + 1); renderCalendar(); };
+$("calToday").onclick = () => { calMonth = new Date(); calMonth.setDate(1); calSel = dayKey(new Date()); renderCalendar(); };
+
+// ---------- add ----------
 $("addForm").onsubmit = e => {
   e.preventDefault();
   const title = $("newTitle").value.trim();
   if (!title) return;
   const data = { title, done: false, source: "web", created: serverTimestamp() };
-  if (!view.startsWith("@")) data.list = view;
-  if (view === "@today") data.due = toDueString(new Date(), false);
+  if (!isSpecial(view)) data.list = view;
+  if (view === "@today") data.due = dayKey(new Date());
+  if (view === "@calendar" && calSel) data.due = calSel;
   push(tasksRef, data);
   $("newTitle").value = "";
 };
 $("menuBtn").onclick = () => $("nav").classList.toggle("open");
 
 // ---------- editor ----------
-let editing = null, snapshot = "";
+let editing = null, snapshot = "", eSubs = [];
+function renderSubsEditor() {
+  const ul = $("eSubs"); ul.innerHTML = "";
+  eSubs.forEach((s, i) => {
+    const li = document.createElement("li");
+    const c = document.createElement("input"); c.type = "checkbox"; c.checked = s.ok; c.onchange = () => { s.ok = c.checked; };
+    const t = document.createElement("input"); t.type = "text"; t.value = s.t; t.oninput = () => { s.t = t.value; };
+    const x = document.createElement("button"); x.type = "button"; x.className = "x"; x.textContent = "✕";
+    x.onclick = () => { eSubs.splice(i, 1); renderSubsEditor(); };
+    li.append(c, t, x); ul.append(li);
+  });
+}
 function formState() {
-  return JSON.stringify([$("eTitle").value, $("eList").value, $("eDate").value, $("eTime").value, $("eFreq").value, $("eEvery").value, $("eNotes").value]);
+  return JSON.stringify([$("eTitle").value, $("eList").value, $("eDate").value, $("eTime").value, $("eFreq").value, $("eEvery").value, $("eNotes").value, eSubs]);
 }
 function openEditor(r) {
   editing = r;
   $("eTitle").value = r.title || "";
   $("eList").value = listOf(r) === INBOX ? "" : listOf(r);
   const d = dueDate(r);
-  $("eDate").value = d ? toDueString(d, false) : "";
+  $("eDate").value = d ? dayKey(d) : "";
   $("eTime").value = d && hasTime(r) ? pad(d.getHours()) + ":" + pad(d.getMinutes()) : "";
   $("eFreq").value = (r.repeat && r.repeat.freq) || "";
   $("eEvery").value = (r.repeat && r.repeat.every) || 1;
-  $("eNotes").value = r.notes || "";
+  const p = parseNotes(r.notes);
+  eSubs = p.subs.map(s => ({ ...s }));
+  $("eNotes").value = p.text;
+  $("eNewSub").value = "";
+  renderSubsEditor();
   $("everyWrap").classList.toggle("hidden", !$("eFreq").value);
   snapshot = formState();
   $("editBack").classList.remove("hidden");
 }
 function closeEditor() { $("editBack").classList.add("hidden"); editing = null; }
+function addSub() { const v = $("eNewSub").value.trim(); if (!v) return; eSubs.push({ ok: false, t: v }); $("eNewSub").value = ""; renderSubsEditor(); }
+$("eAddSub").onclick = addSub;
+$("eNewSub").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); addSub(); } };
 $("eFreq").onchange = () => $("everyWrap").classList.toggle("hidden", !$("eFreq").value);
 $("eNoDate").onclick = () => { $("eDate").value = ""; $("eTime").value = ""; };
 function saveEditor() {
-  const title = $("eTitle").value.trim() || "(vuoto)";
+  addSub();
   const list = $("eList").value.trim();
   const date = $("eDate").value, time = $("eTime").value;
   const freq = $("eFreq").value;
-  const data = {
-    title,
+  update(tRef(editing.id), {
+    title: $("eTitle").value.trim() || "(vuoto)",
     list: list || null,
     due: date ? (time ? date + "T" + time : date) : null,
-    allDay: null,
     repeat: freq ? { freq, every: Math.max(1, parseInt($("eEvery").value) || 1) } : null,
-    notes: $("eNotes").value.trim() || null
-  };
-  update(tRef(editing.id), data);
+    notes: buildNotes($("eNotes").value, eSubs)
+  });
   closeEditor();
 }
 $("eSave").onclick = saveEditor;
