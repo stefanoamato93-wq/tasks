@@ -44,8 +44,12 @@
   button.ghost { background:none; border-color:transparent; color:var(--muted); }
   input, select, textarea { font:inherit; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--card2); color:var(--text); }
   input[type=text], textarea { width:100%; }
-  form.add { display:flex; gap:8px; margin-bottom:6px; }
-  .addHint { font-size:12px; color:var(--muted); margin:0 2px 12px; }
+  form.add { display:flex; gap:8px; margin-bottom:12px; }
+  /* phone: no add box at the top; the + button opens it above the keyboard */
+  @media (max-width:700px) {
+    form.add { display:none; }
+    body.adding form.add { display:flex; position:fixed; left:12px; right:12px; bottom:calc(76px + env(safe-area-inset-bottom)); z-index:12; margin:0; background:var(--card2); padding:8px; border-radius:14px; box-shadow:0 6px 24px rgba(0,0,0,.6); }
+  }
 
   /* sidebar */
   .lists { list-style:none; margin:0; padding:0; }
@@ -160,7 +164,7 @@
   <main>
     <header>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v6</span>
+      <span class="ver">v7</span>
     </header>
     <div class="dayNav" id="dayNav">
       <button class="ghost navArrow" id="dayPrev">‹</button>
@@ -176,7 +180,6 @@
       <input type="text" id="newTitle" placeholder="Nuovo task…" autocomplete="off">
       <button class="primary" type="submit">Aggiungi</button>
     </form>
-    <div class="addHint" id="addHint"></div>
 
     <div id="calendar" class="hidden">
       <div class="calBar">
@@ -457,7 +460,6 @@ function renderAll() {
   $("doneView").classList.toggle("hidden", view !== "@done");
   $("listView").classList.toggle("hidden", view === "@calendar" || view === "@done");
   $("addForm").classList.toggle("hidden", view === "@done");
-  $("addHint").classList.toggle("hidden", view === "@done");
   if (q) {
     // search covers every task (open and completed), whatever the view
     $("calendar").classList.add("hidden"); $("doneView").classList.add("hidden");
@@ -478,9 +480,6 @@ function renderAll() {
   $("dayNav").classList.toggle("off", !onDay);
   $("todayLabel").textContent = longDate(onDay ? keyToDate(curDay()) : new Date());
   $("dayToday").classList.toggle("hidden", !selDay);
-  const addList = isSpecial(view) ? defaultList() : view;
-  const addDay = view === "@calendar" && calSel ? calSel : view === "@today" ? curDay() : todayStr();
-  $("addHint").textContent = "→ " + addList + " · " + (addDay === todayStr() ? "oggi" : fmtDue({ due: addDay }));
   if (sheetId) renderSheet();
 }
 
@@ -511,14 +510,12 @@ function navItem(key, label, n, idx, names) {
   }
   const nm = document.createElement("span"); nm.className = "name"; nm.textContent = label;
   li.append(nm);
-  if (!isSpecial(key) && key === defaultList()) { const s = document.createElement("span"); s.className = "star"; s.textContent = "★"; s.title = "Elenco predefinito"; li.append(s); }
   if (editLists && !isSpecial(key)) {
     const tools = document.createElement("span"); tools.className = "tools row"; tools.style.flex = "0"; tools.style.flexWrap = "nowrap"; tools.style.gap = "4px";
     const mk = (txt, title, fn) => { const b = document.createElement("button"); b.textContent = txt; b.title = title; b.onclick = e => { e.stopPropagation(); fn(); }; tools.append(b); };
     mk("↑", "Su", () => moveList(names, idx, -1));
     mk("↓", "Giù", () => moveList(names, idx, +1));
     mk("✎", "Rinomina", () => renameList(key));
-    mk("★", "Predefinito", () => update(ref(db, "taskApp/settings"), { defaultList: key }));
     li.append(tools);
   } else {
     const cnt = document.createElement("span"); cnt.className = "n"; cnt.textContent = n || ""; li.append(cnt);
@@ -785,7 +782,7 @@ function toast(msg, action, onAction) {
     t.append(b);
   }
   t.classList.remove("hidden"); clearTimeout(toastT);
-  toastT = setTimeout(() => t.classList.add("hidden"), action ? 5000 : 2200);
+  toastT = setTimeout(() => t.classList.add("hidden"), action ? 3000 : 2000);
 }
 // delete at once, offer undo for a few seconds
 function deleteTask(id) {
@@ -882,7 +879,21 @@ $("addForm").onsubmit = e => {
   $("newTitle").value = "";
 };
 document.querySelectorAll("#bar button").forEach(b => b.onclick = () => setView(b.dataset.v));
-$("plusBtn").onclick = () => { if (view === "@done") setView("@today"); setTimeout(() => { $("newTitle").focus(); window.scrollTo({ top: 0, behavior: "smooth" }); }, 50); };
+// + opens the add box; it stays open for several tasks in a row and closes when you tap elsewhere
+$("plusBtn").onclick = () => {
+  if (view === "@done") setView("@today");
+  document.body.classList.add("adding");
+  $("newTitle").focus();     // synchronous, so the phone keyboard opens
+};
+// tapping "Aggiungi" must not take focus from the box (or it would close before saving)
+document.querySelector("#addForm button").addEventListener("pointerdown", e => e.preventDefault());
+$("newTitle").addEventListener("blur", () => setTimeout(() => {
+  if (document.activeElement !== $("newTitle")) document.body.classList.remove("adding");
+}, 150));
+// computer: N focuses the add box
+document.addEventListener("keydown", e => {
+  if (e.key.toLowerCase() === "n" && !sheetId && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); $("newTitle").focus(); }
+});
 
 // ---------- task sheet (every change saves at once) ----------
 let sheetId = null;
