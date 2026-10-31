@@ -61,6 +61,7 @@ Shortcuts cannot read a reminder's repeat rule, so repeats are set by hand in th
 31 Oct 2026: the first full import sent dates as Italian text with the title stuck on (`1 nov 2026, 00:00Affitto`); all 184 were rewritten once to `YYYY-MM-DD[THH:MM]`.
 
 ## Changelog
+- v10 (31 Oct 2026): on computer the lists sidebar is sticky (follows the scroll; scrolls on its own if taller than the window).
 - v9 (31 Oct 2026): finer repeats: Giorni lavorativi, weekly on chosen weekdays, monthly on chosen days of the month (works with "ogni N"); month-end clamp fix.
 - v8 (31 Oct 2026): Domani view, sidebar names wrap, Fatto moved to a sticky header in the task sheet.
 - v7 (31 Oct 2026): removed the star / default-list UI and the hint under the add box; phone add only via the + button; N shortcut on computer; undo toast 3 s.
