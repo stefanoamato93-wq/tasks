@@ -22,6 +22,7 @@
   nav { width:auto; min-width:220px; max-width:320px; flex-shrink:0; }
   /* computer: the lists menu follows you while the tasks scroll */
   @media (min-width:701px) {
+    body { zoom:.8; }   /* computer: smaller text, harder to read from a distance */
     nav { position:sticky; top:14px; align-self:flex-start; max-height:calc(100vh - 28px); overflow-y:auto; }
   }
   main { flex:1; min-width:0; }
@@ -213,7 +214,7 @@
   <main>
     <header>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v19</span>
+      <span class="ver">v20</span>
     </header>
     <div class="dayNav" id="dayNav">
       <button class="ghost navArrow" id="dayToday" style="font-size:13px;min-width:56px">Oggi</button>
@@ -488,6 +489,7 @@ function addInterval(d, rep, sign = 1) {
 }
 const todayStr = () => dayKey(new Date());
 const tomorrowStr = () => { const d = new Date(); d.setDate(d.getDate() + 1); return dayKey(d); };
+const nextMonStr = () => { const d = mondayOf(new Date()); d.setDate(d.getDate() + 7); return dayKey(d); };
 const curDay = () => selDay || todayStr();
 const keyToDate = k => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
 function longDate(d) { return WD_FULL[d.getDay()] + " " + d.getDate() + " " + MO_FULL[d.getMonth()] + " " + d.getFullYear(); }
@@ -556,7 +558,7 @@ onValue(ref(db, "taskApp/settings"), snap => { settings = snap.val() || {}; rend
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const isSpecial = v => v.startsWith("@");
-const VIEW_NAMES = { "@today": "Oggi", "@tomorrow": "Domani", "@calendar": "Calendario", "@all": "Tutti", "@done": "Completati", "@chart": "Carico per giorno" };
+const VIEW_NAMES = { "@today": "Oggi", "@tomorrow": "Domani", "@nextmon": "Lunedì prossimo", "@calendar": "Calendario", "@all": "Tutti", "@done": "Completati", "@chart": "Carico per giorno" };
 // open the day page ("Oggi" view moved to day k)
 function openDay(k) {
   view = "@today"; localStorage.setItem("tasksView", view);
@@ -613,11 +615,12 @@ function renderLists() {
   open.forEach(r => counts[listOf(r)] = (counts[listOf(r)] || 0) + 1);
   const today = open.filter(r => { const d = dueDate(r); return d && dayDiff(d) <= 0; }).length;
   const tomorrow = open.filter(r => { const d = dueDate(r); return d && dayDiff(d) === 1; }).length + projectedFor(tomorrowStr()).length;
+  const nextMon = open.filter(r => { const d = dueDate(r); return d && dayKey(d) === nextMonStr(); }).length + projectedFor(nextMonStr()).length;
   const planned = open.filter(r => dueDate(r)).length;
   const done = rows.length - open.length;
   const names = allLists();
   const ul = $("lists"); ul.innerHTML = "";
-  const special = [["@today", "📅 Oggi", today], ["@tomorrow", "🌅 Domani", tomorrow], ["@calendar", "🗓️ Calendario", ""], ["@all", "📋 Tutti", open.length], ["@done", "✅ Completati", done]];
+  const special = [["@today", "📅 Oggi", today], ["@tomorrow", "🌅 Domani", tomorrow], ["@nextmon", "🔜 Lunedì prossimo", nextMon], ["@calendar", "🗓️ Calendario", ""], ["@all", "📋 Tutti", open.length], ["@done", "✅ Completati", done]];
   for (const [key, label, n] of special) ul.append(navItem(key, label, n));
   const sep = document.createElement("li"); sep.className = "sep"; ul.append(sep);
   names.forEach((name, i) => ul.append(navItem(name, name, counts[name] || 0, i, names)));
@@ -739,6 +742,7 @@ function inView(r) {
   if (r.done) return false;
   if (view === "@all") return true;
   if (view === "@tomorrow") { const d = dueDate(r); return !!d && dayKey(d) === tomorrowStr(); }
+  if (view === "@nextmon") { const d = dueDate(r); return !!d && dayKey(d) === nextMonStr(); }
   if (view === "@today") {
     const d = dueDate(r); if (!d) return false;
     return selDay ? dayKey(d) === selDay : dayDiff(d) <= 0;   // today also shows late tasks
@@ -781,7 +785,7 @@ function groupBlock(key, label, items, opts = {}) {
 
 function renderTasks() {
   const box = $("listView"); box.innerHTML = "";
-  const proj = view === "@today" && selDay ? projectedFor(selDay) : view === "@tomorrow" ? projectedFor(tomorrowStr()) : [];
+  const proj = view === "@today" && selDay ? projectedFor(selDay) : view === "@tomorrow" ? projectedFor(tomorrowStr()) : view === "@nextmon" ? projectedFor(nextMonStr()) : [];
   futureIds = new Set(proj.map(r => r.id));
   const open = rows.filter(inView).concat(proj).sort(byDue);
   if (!open.length) { box.innerHTML = `<div class="empty">Nessun task 🎉</div>`; return; }
@@ -1140,7 +1144,7 @@ $("addForm").onsubmit = e => {
   push(tasksRef, {
     title, done: false, source: "web", created: serverTimestamp(),
     list: isSpecial(view) ? defaultList() : view,
-    due: view === "@calendar" && calSel ? calSel : view === "@today" ? curDay() : view === "@tomorrow" ? tomorrowStr() : todayStr()
+    due: view === "@calendar" && calSel ? calSel : view === "@today" ? curDay() : view === "@tomorrow" ? tomorrowStr() : view === "@nextmon" ? nextMonStr() : todayStr()
   });
   $("newTitle").value = "";
   // phone: close the box and the keyboard after saving
