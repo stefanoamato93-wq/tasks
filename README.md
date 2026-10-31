@@ -61,6 +61,7 @@ Shortcuts cannot read a reminder's repeat rule, so repeats are set by hand in th
 31 Oct 2026: the first full import sent dates as Italian text with the title stuck on (`1 nov 2026, 00:00Affitto`); all 184 were rewritten once to `YYYY-MM-DD[THH:MM]`.
 
 ## Changelog
+- v12 (31 Oct 2026): phone: after adding, the keyboard closes; haptic tick on add and when a swipe crosses the full-delete point (60% of the row; letting go there deletes, with undo). `haptic()` uses `navigator.vibrate` (Android) or the iOS 18 hidden `<input switch>` trick (iPhone Safari). Day swipes no longer start on a task row in either direction (rows are for delete); the date bar is sticky at the top on phone so days can always be swiped there, or on empty space, or with ‹ ›.
 - v11 (31 Oct 2026): phone delete is now swipe-left on a task to show a red "Elimina", tap it to confirm (still with undo). The one-tap ✕ stays on computer only. A row swipe does not change the day; swipe on empty space or headers for that. Row markup: `li > .rowInner (ring, body, ✕) + .swipeDel`.
 - v10 (31 Oct 2026): on computer the lists sidebar is sticky (follows the scroll; scrolls on its own if taller than the window).
 - v9 (31 Oct 2026): finer repeats: Giorni lavorativi, weekly on chosen weekdays, monthly on chosen days of the month (works with "ogni N"); month-end clamp fix.

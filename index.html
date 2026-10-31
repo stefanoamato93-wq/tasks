@@ -31,6 +31,11 @@
   .dayNav { display:flex; align-items:center; gap:4px; margin:0 0 10px; }
   .dayNav button { font-size:20px; padding:2px 12px; }
   .dayNav.off .navArrow { visibility:hidden; }
+  /* phone: the date bar stays at the top, so there is always a place to swipe days (rows swipe to delete) */
+  @media (max-width:700px) {
+    .dayNav { position:sticky; top:0; z-index:5; background:var(--bg); margin:0 -16px 10px; padding:10px 16px; border-bottom:1px solid var(--line); }
+    .dayNav .today { font-size:16px; color:var(--text); }
+  }
   .doneBar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 2px 12px; }
   .doneBar span { color:var(--muted); font-size:14px; }
   .doneBar button { white-space:nowrap; padding:7px 14px; border-color:var(--danger); }
@@ -80,7 +85,8 @@
   ul.tasks > li { position:relative; overflow:hidden; border-top:1px solid var(--line); cursor:pointer; }
   ul.tasks > li.empty { padding:16px; }
   .rowInner { position:relative; z-index:1; display:flex; align-items:flex-start; gap:12px; padding:10px 12px; background:var(--card); transition:transform .2s; }
-  .swipeDel { position:absolute; top:0; right:0; bottom:0; width:96px; border:0; border-radius:0; background:var(--danger); color:#fff; font-weight:600; display:none; }
+  .swipeDel { position:absolute; top:0; right:0; bottom:0; left:0; border:0; border-radius:0; background:#8a2d29; color:#fff; font-weight:600; display:none; text-align:right; padding:0 18px; transition:background .15s; }
+  li.swiped .swipeDel, li.armed .swipeDel { background:var(--danger); }
   @media (max-width:700px) {
     .rowInner .del { display:none; }      /* phone: no one-tap ✕, swipe left instead */
     .swipeDel { display:block; }
@@ -180,7 +186,7 @@
   <main>
     <header>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v11</span>
+      <span class="ver">v12</span>
     </header>
     <div class="dayNav" id="dayNav">
       <button class="ghost navArrow" id="dayPrev">‹</button>
@@ -818,7 +824,7 @@ function row(r, opts = {}) {
     const sw = document.createElement("button"); sw.className = "swipeDel"; sw.textContent = "Elimina";
     sw.onclick = e => { e.stopPropagation(); deleteTask(r.id); };
     li.append(sw);
-    addRowSwipe(li, inner);
+    addRowSwipe(li, inner, () => deleteTask(r.id));
   }
   li.onclick = () => { if (li.classList.contains("swiped")) { closeSwiped(); return; } openSheet(r.id); };
   if (!opts.future) {
@@ -851,8 +857,21 @@ function toggle(r, checked) {
 let rowSwipeUsed = false;      // tells the day-swipe handler to ignore this gesture
 let openRow = null;
 function closeSwiped() { if (openRow) { openRow.classList.remove("swiped"); openRow.querySelector(".rowInner").style.transform = ""; openRow = null; } }
-function addRowSwipe(li, inner) {
-  let sx = null, sy = null, dx = 0, horiz = null;
+// haptic tick: Android uses vibrate; iPhone Safari (iOS 18+) ticks when a hidden "switch" checkbox is toggled
+const hapticLabel = (() => {
+  const id = "hapticSwitch";
+  const inp = document.createElement("input"); inp.type = "checkbox"; inp.id = id; inp.setAttribute("switch", "");
+  const lab = document.createElement("label"); lab.htmlFor = id;
+  const box = document.createElement("div"); box.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none";
+  box.append(inp, lab); document.body.append(box);
+  return lab;
+})();
+function haptic() {
+  try { if (navigator.vibrate && navigator.vibrate(15)) return; } catch (e) {}
+  try { hapticLabel.click(); } catch (e) {}
+}
+function addRowSwipe(li, inner, onFull) {
+  let sx = null, sy = null, dx = 0, horiz = null, armed = false;
   li.addEventListener("touchstart", e => {
     if (e.touches.length !== 1) return;
     sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; horiz = null;
@@ -861,11 +880,18 @@ function addRowSwipe(li, inner) {
   li.addEventListener("touchmove", e => {
     if (sx === null) return;
     const mx = e.touches[0].clientX - sx, my = e.touches[0].clientY - sy;
-    if (horiz === null && (Math.abs(mx) > 8 || Math.abs(my) > 8)) horiz = Math.abs(mx) > Math.abs(my) && mx < 0 || li.classList.contains("swiped");
+    if (horiz === null && (Math.abs(mx) > 8 || Math.abs(my) > 8)) {
+      const sideways = Math.abs(mx) > Math.abs(my);
+      if (sideways) rowSwipeUsed = true;      // any sideways swipe on a task never changes the day
+      horiz = sideways && mx < 0 || li.classList.contains("swiped");
+    }
     if (!horiz) return;
     rowSwipeUsed = true;
     const base = li.classList.contains("swiped") ? -96 : 0;
-    dx = Math.min(0, Math.max(-120, base + mx));
+    const full = li.offsetWidth * 0.6;                      // past this point, letting go deletes
+    dx = Math.min(0, base + mx);
+    const nowArmed = -dx > full;
+    if (nowArmed !== armed) { armed = nowArmed; li.classList.toggle("armed", armed); if (armed) haptic(); }
     inner.style.transition = "none";
     inner.style.transform = `translateX(${dx}px)`;
   }, { passive: true });
@@ -874,6 +900,14 @@ function addRowSwipe(li, inner) {
     sx = null;
     inner.style.transition = "";
     if (!horiz) return;
+    if (armed) {
+      // full swipe: slide out and delete (undo stays available)
+      armed = false; li.classList.remove("armed");
+      inner.style.transform = "translateX(-100%)";
+      if (openRow === li) openRow = null;
+      setTimeout(onFull, 180);
+      return;
+    }
     if (dx < -50) { li.classList.add("swiped"); inner.style.transform = "translateX(-96px)"; openRow = li; }
     else { li.classList.remove("swiped"); inner.style.transform = ""; if (openRow === li) openRow = null; }
   });
@@ -984,9 +1018,13 @@ $("addForm").onsubmit = e => {
     due: view === "@calendar" && calSel ? calSel : view === "@today" ? curDay() : view === "@tomorrow" ? tomorrowStr() : todayStr()
   });
   $("newTitle").value = "";
+  haptic();
+  // phone: close the box and the keyboard after saving
+  if (window.matchMedia("(max-width:700px)").matches) { $("newTitle").blur(); document.body.classList.remove("adding"); }
+  else toast("✓ Aggiunto");
 };
 document.querySelectorAll("#bar button").forEach(b => b.onclick = () => setView(b.dataset.v));
-// + opens the add box; it stays open for several tasks in a row and closes when you tap elsewhere
+// + opens the add box; saving or tapping elsewhere closes it (phone)
 $("plusBtn").onclick = () => {
   if (view === "@done") setView("@today");
   document.body.classList.add("adding");
