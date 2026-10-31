@@ -228,7 +228,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v24</span>
+      <span class="ver">v25</span>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
     <div class="dayNav" id="dayNav">
@@ -552,7 +552,19 @@ function allLists() {
 }
 
 // ---------- data ----------
+// open at once with the last saved copy on this phone; live data replaces it a moment later
+const CACHE = "tasksCache";
+let live = false;
+const saveCache = () => { try { localStorage.setItem(CACHE, JSON.stringify({ rows, listMeta, settings })); } catch (e) {} };
+setTimeout(() => {
+  if (live) return;
+  try {
+    const c = JSON.parse(localStorage.getItem(CACHE) || "null");
+    if (c && c.rows) { rows = c.rows; listMeta = c.listMeta || {}; settings = c.settings || {}; loaded = true; renderAll(); }
+  } catch (e) {}
+}, 0);
 onValue(tasksRef, snap => {
+  live = true;
   const all = snap.val() || {};
   rows = [];
   for (const id in all) {
@@ -568,9 +580,10 @@ onValue(tasksRef, snap => {
   }
   loaded = true;
   renderAll();
+  saveCache();
 }, e => { $("listView").innerHTML = `<div class="empty">Errore: ${e.message}</div>`; });
-onValue(ref(db, "taskApp/lists"), snap => { listMeta = snap.val() || {}; renderAll(); }, () => {});
-onValue(ref(db, "taskApp/settings"), snap => { settings = snap.val() || {}; renderAll(); }, () => {});
+onValue(ref(db, "taskApp/lists"), snap => { listMeta = snap.val() || {}; renderAll(); saveCache(); }, () => {});
+onValue(ref(db, "taskApp/settings"), snap => { settings = snap.val() || {}; renderAll(); saveCache(); }, () => {});
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const isSpecial = v => v.startsWith("@");
