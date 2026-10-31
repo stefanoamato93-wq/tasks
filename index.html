@@ -205,7 +205,7 @@
   <main>
     <header>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v17</span>
+      <span class="ver">v18</span>
     </header>
     <div class="dayNav" id="dayNav">
       <button class="ghost navArrow" id="dayToday" style="font-size:13px;min-width:56px">Oggi</button>
@@ -856,7 +856,7 @@ function ring(checked, color, small, onToggle) {
   b.className = "ring" + (small ? " sm" : "") + (checked ? " on" : "");
   b.style.setProperty("--c", color);
   b.onclick = e => {
-    e.stopPropagation(); haptic();
+    e.stopPropagation();
     if (b.dataset.future) { onToggle(true); return; }      // future repeat: only explains
     if (!checked) {
       // show the tick fill in for a moment before the task moves away
@@ -865,7 +865,6 @@ function ring(checked, color, small, onToggle) {
       setTimeout(() => onToggle(true), 420);
     } else onToggle(false);
   };
-  hapticTrigger(b);
   return b;
 }
 
@@ -917,9 +916,8 @@ function row(r, opts = {}) {
     del.onclick = e => { e.stopPropagation(); deleteTask(r.id); };
     inner.append(del);
     const sw = document.createElement("button"); sw.className = "swipeDel"; sw.textContent = "Elimina";
-    sw.onclick = e => { e.stopPropagation(); haptic(); deleteTask(r.id); };
+    sw.onclick = e => { e.stopPropagation(); deleteTask(r.id); };
     li.append(sw);
-    hapticTrigger(sw);
     addRowSwipe(li, inner, () => deleteTask(r.id));
   }
   li.onclick = () => { if (li.classList.contains("swiped")) { closeSwiped(); return; } openSheet(r.id); };
@@ -953,28 +951,6 @@ function toggle(r, checked) {
 let rowSwipeUsed = false;      // tells the day-swipe handler to ignore this gesture
 let openRow = null;
 function closeSwiped() { if (openRow) { openRow.classList.remove("swiped"); openRow.querySelector(".rowInner").style.transform = ""; openRow = null; } }
-// haptics. Android: navigator.vibrate. iPhone: Safari only ticks when the finger really taps a
-// <input switch>, so tappable buttons get an invisible switch label laid over them (ios-haptics method).
-// A swipe is not a tap, so on iPhone the swipe itself cannot tick.
-const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-function haptic() { try { if (navigator.vibrate) navigator.vibrate(15); } catch (e) {} }
-function hapticTrigger(el) {
-  if (!IS_IOS || !el || el.querySelector(":scope > [data-haptic]")) return;
-  const lab = document.createElement("label");
-  lab.setAttribute("data-haptic", ""); lab.setAttribute("aria-hidden", "true");
-  lab.style.cssText = "position:absolute;inset:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent";
-  const sw = document.createElement("input"); sw.type = "checkbox"; sw.setAttribute("switch", "");
-  sw.style.cssText = "position:absolute;width:1px;height:1px;margin:0;visibility:hidden";
-  sw.addEventListener("click", e => e.stopPropagation());
-  lab.append(sw);
-  // The overlay must stay INSIDE el. A detached element has no computed style yet, so always pin
-  // position here unless el is already absolute/fixed (otherwise the label spread over the whole row
-  // and any tap on a task ticked it).
-  const pos = el.style.position || (el.isConnected ? getComputedStyle(el).position : "");
-  if (pos !== "absolute" && pos !== "fixed" && !el.classList.contains("swipeDel")) el.style.position = "relative";
-  el.style.overflow = "hidden";
-  el.append(lab);
-}
 function addRowSwipe(li, inner, onFull) {
   let sx = null, sy = null, dx = 0, horiz = null, armed = false;
   li.addEventListener("touchstart", e => {
@@ -996,7 +972,7 @@ function addRowSwipe(li, inner, onFull) {
     const full = li.offsetWidth * 0.6;                      // past this point, letting go deletes
     dx = Math.min(0, base + mx);
     const nowArmed = -dx > full;
-    if (nowArmed !== armed) { armed = nowArmed; li.classList.toggle("armed", armed); if (armed) haptic(); }
+    if (nowArmed !== armed) { armed = nowArmed; li.classList.toggle("armed", armed); }
     inner.style.transition = "none";
     inner.style.transform = `translateX(${dx}px)`;
   }, { passive: true });
@@ -1123,7 +1099,6 @@ $("addForm").onsubmit = e => {
     due: view === "@calendar" && calSel ? calSel : view === "@today" ? curDay() : view === "@tomorrow" ? tomorrowStr() : todayStr()
   });
   $("newTitle").value = "";
-  haptic();
   // phone: close the box and the keyboard after saving
   if (window.matchMedia("(max-width:700px)").matches) { $("newTitle").blur(); document.body.classList.remove("adding"); }
   else toast("✓ Aggiunto");
@@ -1137,8 +1112,6 @@ $("plusBtn").onclick = () => {
 };
 // tapping "Aggiungi" must not take focus from the box (or it would close before saving)
 document.querySelector("#addForm button").addEventListener("pointerdown", e => e.preventDefault());
-hapticTrigger(document.querySelector("#addForm button"));
-hapticTrigger($("plusBtn"));
 $("newTitle").addEventListener("blur", () => setTimeout(() => {
   if (document.activeElement !== $("newTitle")) document.body.classList.remove("adding");
 }, 150));
