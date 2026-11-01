@@ -233,7 +233,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v29</span>
+      <span class="ver">v30</span>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
     <div class="dayNav" id="dayNav">
@@ -449,7 +449,7 @@ function askUndo() {
   const tp = Object.keys(e.before).find(p => p.startsWith("tasks/"));
   const r = tp && rows.find(x => x.id === tp.split("/")[1]);
   const name = r ? r.title : (tp && e.before[tp] && e.before[tp].title);
-  toast(name ? "Annullare Â«" + (name.length > 28 ? name.slice(0, 28) + "â€¦" : name) + "Â»?" : "Annullare l'ultima azione?", "Annulla", undoLast);
+  toast(name ? "Annullare \u00ab" + (name.length > 28 ? name.slice(0, 28) + "\u2026" : name) + "\u00bb?" : "Annullare l'ultima azione?", "Annulla", undoLast);
 }
 // shake: iPhone asks once for "Movimento" permission on the first tap
 {
