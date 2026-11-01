@@ -447,16 +447,6 @@ function undoLast() {
   fbUpdate(rootRef, e.before).finally(() => { undoing = false; });
   toast("Annullato");
 }
-function askUndo() {
-  const e = undoStack[undoStack.length - 1];
-  if (!e) { toast("Niente da annullare"); return; }
-  const tp = Object.keys(e.before).find(p => p.startsWith("tasks/"));
-  const r = tp && rows.find(x => x.id === tp.split("/")[1]);
-  const name = r ? r.title : (tp && e.before[tp] && e.before[tp].title);
-  toast(name ? "Annullare \u00ab" + (name.length > 28 ? name.slice(0, 28) + "\u2026" : name) + "\u00bb?" : "Annullare l'ultima azione?", "Annulla", undoLast);
-}
-);
-}
 
 const INBOX = "Inbox";
 const FALLBACK_DEFAULT = "1 Urg And Imp";
