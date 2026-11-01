@@ -237,7 +237,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v33</span>
+      <span class="ver">v34</span>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
     <div class="dayNav" id="dayNav">
@@ -1077,8 +1077,10 @@ function toggle(r, checked) {
     const { subs, text } = parseNotes(r.notes);
     const data = { due, done: false, lastDone: Date.now() };
     if (subs.length) data.notes = buildNotes(text, subs.map(s => ({ ...s, ok: false })));
+    const back = { due: r.due || null, done: r.done || false, lastDone: r.lastDone || null };   // undo puts the old date back
+    if (data.notes) back.notes = r.notes || null;
     update(tRef(r.id), data);
-    toast("🔁 Prossima: " + fmtDue({ due }));
+    toast("🔁 Prossima: " + fmtDue({ due }), "Annulla", () => update(tRef(r.id), back));
     return;
   }
   update(tRef(r.id), checked ? { done: true, doneAt: Date.now() } : { done: false, doneAt: null });
