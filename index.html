@@ -32,6 +32,7 @@
   .dayNav { display:flex; align-items:center; gap:4px; margin:0 0 10px; }
   .dayNav button { font-size:20px; padding:2px 12px; }
   .dayNav.off .navArrow { visibility:hidden; }
+  .dayCnt { display:inline-block; min-width:22px; margin-left:6px; padding:0 7px; border-radius:11px; background:var(--accent); color:#fff; font-size:13px; font-weight:600; line-height:20px; text-align:center; vertical-align:1px; }
   /* phone: the date bar stays at the top, so there is always a place to swipe days (rows swipe to delete) */
   @media (max-width:700px) {
     .dayNav { position:sticky; top:0; z-index:5; background:var(--bg); margin:0 -16px 10px; padding:10px 16px; border-bottom:1px solid var(--line); }
@@ -232,7 +233,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v27</span>
+      <span class="ver">v28</span>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
     <div class="dayNav" id="dayNav">
@@ -639,7 +640,7 @@ function renderAll() {
   // day bar: arrows only in "Oggi"
   const onDay = view === "@today" && !q;
   $("dayNav").classList.toggle("off", !onDay);
-  $("todayLabel").textContent = longDate(onDay ? keyToDate(curDay()) : new Date());
+  $("todayLabel").innerHTML = esc(longDate(onDay ? keyToDate(curDay()) : new Date())) + (onDay ? ` <span class="dayCnt">${dayCount}</span>` : "");
   // "Oggi" sits on the left and only fades, so ‹ › never move under the finger
   $("dayToday").style.visibility = selDay && onDay ? "visible" : "hidden";
   if (sheetId) renderSheet();
@@ -801,6 +802,7 @@ const byDue = (a, b) => {
 };
 
 let futureIds = new Set();
+let dayCount = 0;
 function groupBlock(key, label, items, opts = {}) {
   const frag = document.createDocumentFragment();
   const gh = document.createElement("div"); gh.className = "gh" + (opts.late ? " late" : "");
@@ -826,6 +828,7 @@ function renderTasks() {
   const proj = view === "@today" && selDay ? projectedFor(selDay) : view === "@tomorrow" ? projectedFor(tomorrowStr()) : view === "@nextmon" ? projectedFor(nextMonStr()) : [];
   futureIds = new Set(proj.map(r => r.id));
   const open = rows.filter(inView).concat(proj).sort(byDue);
+  dayCount = open.length;   // shown beside the date in the day bar
   if (!open.length) { box.innerHTML = `<div class="empty">Nessun task 🎉</div>`; return; }
   if (isSpecial(view)) {
     // grouped by category, in the user's order
