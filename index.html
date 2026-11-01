@@ -237,7 +237,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v34</span>
+      <span class="ver">v35</span>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
     <div class="dayNav" id="dayNav">
@@ -1084,7 +1084,7 @@ function toggle(r, checked) {
     return;
   }
   update(tRef(r.id), checked ? { done: true, doneAt: Date.now() } : { done: false, doneAt: null });
-  if (checked) toast("✓ Completato");
+  if (checked) toast("✓ Completato", "Annulla", () => update(tRef(r.id), { done: false, doneAt: null }));
 }
 
 // ---------- phone: swipe a task left to show "Elimina", tap it to confirm ----------
