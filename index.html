@@ -33,7 +33,10 @@
   .dayNav { display:flex; align-items:center; gap:4px; margin:0 0 10px; }
   .dayNav button { font-size:20px; padding:2px 12px; }
   .dayNav.off .navArrow { visibility:hidden; }
-  .dayCnt { display:inline-block; min-width:22px; margin-left:6px; padding:0 7px; border-radius:11px; background:var(--accent); color:#fff; font-size:13px; font-weight:600; line-height:20px; text-align:center; vertical-align:1px; }
+  /* date and counter always on one line: a long date gets "…", the counter never wraps */
+  .dayNav .today { display:flex; align-items:center; justify-content:center; min-width:0; white-space:nowrap; }
+  .dTxt { overflow:hidden; text-overflow:ellipsis; min-width:0; }
+  .dayCnt { flex-shrink:0; display:inline-block; min-width:22px; margin-left:6px; padding:0 7px; border-radius:11px; background:var(--accent); color:#fff; font-size:13px; font-weight:600; line-height:20px; text-align:center; vertical-align:1px; }
   /* phone: the date bar stays at the top, so there is always a place to swipe days (rows swipe to delete) */
   @media (max-width:700px) {
     .dayNav { position:sticky; top:0; z-index:5; background:var(--bg); margin:0 -16px 10px; padding:10px 16px; border-bottom:1px solid var(--line); }
@@ -234,7 +237,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v31</span>
+      <span class="ver">v32</span>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
     <div class="dayNav" id="dayNav">
@@ -581,7 +584,7 @@ const tomorrowStr = () => { const d = new Date(); d.setDate(d.getDate() + 1); re
 const nextMonStr = () => { const d = mondayOf(new Date()); d.setDate(d.getDate() + 7); return dayKey(d); };
 const curDay = () => selDay || todayStr();
 const keyToDate = k => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
-function longDate(d) { return WD_FULL[d.getDay()] + " " + d.getDate() + " " + MO_FULL[d.getMonth()] + " " + d.getFullYear(); }
+function longDate(d) { return WD_FULL[d.getDay()] + " " + d.getDate() + " " + MO_FULL[d.getMonth()] + (d.getFullYear() !== new Date().getFullYear() ? " " + d.getFullYear() : ""); }   // year only when not this year
 function shiftDay(n) {
   const d = keyToDate(curDay()); d.setDate(d.getDate() + n);
   selDay = dayKey(d) === todayStr() ? null : dayKey(d);
@@ -705,7 +708,7 @@ function renderAll() {
   // day bar: arrows only in "Oggi"
   const onDay = view === "@today" && !q;
   $("dayNav").classList.toggle("off", !onDay);
-  $("todayLabel").innerHTML = esc(longDate(onDay ? keyToDate(curDay()) : new Date())) + (onDay ? ` <span class="dayCnt">${dayCount}</span>` : "");
+  $("todayLabel").innerHTML = `<span class="dTxt">${esc(longDate(onDay ? keyToDate(curDay()) : new Date()))}</span>` + (onDay ? `<span class="dayCnt">${dayCount}</span>` : "");
   // "Oggi" sits on the left and only fades, so ‹ › never move under the finger
   $("dayToday").style.visibility = selDay && onDay ? "visible" : "hidden";
   if (sheetId) renderSheet();
