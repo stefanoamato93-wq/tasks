@@ -17,6 +17,7 @@
   /* dark only (Stefano's choice) */
   :root { --bg:#1c1c1e; --card:#232326; --card2:#2c2c2f; --text:#ececee; --muted:#8e8e93; --line:#333336; --accent:#3d7bfd; --danger:#ff5a52; --late:#ff5a52; --soft:#2a3550; color-scheme:dark; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }   /* no double-tap zoom on fast taps */
+  html, body { overscroll-behavior-y:none; }   /* no pull-to-reload while swiping days */
   body { margin:0; font:16px/1.4 -apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--text); }
   .wrap { max-width:1100px; margin:0 auto; padding:14px 16px 90px; display:flex; gap:22px; }
   nav { width:auto; min-width:220px; max-width:320px; flex-shrink:0; }
@@ -233,7 +234,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v30</span>
+      <span class="ver">v31</span>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
     <div class="dayNav" id="dayNav">
@@ -1242,12 +1243,21 @@ $("dayNext").onclick = () => shiftDay(1);
 $("dayToday").onclick = () => { selDay = null; renderAll(); };
 let tx = null, ty = null;
 document.querySelector("main").addEventListener("touchstart", e => { rowSwipeUsed = false; if (e.touches.length !== 1) return; tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+// once the finger clearly goes sideways, hold the page still (no scroll, no pull-to-reload)
+let sideLock = false;
+document.querySelector("main").addEventListener("touchstart", () => { sideLock = false; }, { passive: true });
+document.querySelector("main").addEventListener("touchmove", e => {
+  if (tx === null || sheetId || e.touches.length !== 1) return;
+  const dx = e.touches[0].clientX - tx, dy = e.touches[0].clientY - ty;
+  if (!sideLock && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.5) sideLock = true;
+  if (sideLock && e.cancelable) e.preventDefault();
+}, { passive: false });
 document.querySelector("main").addEventListener("touchend", e => {
   if (rowSwipeUsed) { rowSwipeUsed = false; tx = null; return; }   // that swipe opened a task's "Elimina"
   if (tx === null || sheetId) return;
   const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
   tx = null;
-  if (Math.abs(dx) < 70 || Math.abs(dy) > 50) return;
+  if (Math.abs(dx) < 70 || (Math.abs(dy) > 50 && !sideLock)) return;
   if (view === "@today" && !q) shiftDay(dx < 0 ? 1 : -1);
   else if (view === "@calendar" && !q) calShift(dx < 0 ? 4 : -4);
 }, { passive: true });
