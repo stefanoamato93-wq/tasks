@@ -237,7 +237,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v32</span>
+      <span class="ver">v33</span>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
     <div class="dayNav" id="dayNav">
@@ -455,27 +455,7 @@ function askUndo() {
   const name = r ? r.title : (tp && e.before[tp] && e.before[tp].title);
   toast(name ? "Annullare \u00ab" + (name.length > 28 ? name.slice(0, 28) + "\u2026" : name) + "\u00bb?" : "Annullare l'ultima azione?", "Annulla", undoLast);
 }
-// shake: iPhone asks once for "Movimento" permission on the first tap
-{
-  let asked = false, hits = [], quiet = 0;
-  const listen = () => addEventListener("devicemotion", e => {
-    const a = e.acceleration && e.acceleration.x != null ? e.acceleration : null; if (!a) return;
-    const now = Date.now();
-    if (Math.hypot(a.x, a.y, a.z) < 14 || now < quiet) return;
-    hits = hits.filter(t => now - t < 900); hits.push(now);
-    if (hits.length >= 3) {
-      hits = []; quiet = now + 2000;
-      if (/INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;   // iPhone does its own undo while typing
-      askUndo();
-    }
-  });
-  const ask = () => {
-    if (asked) return; asked = true;
-    const D = window.DeviceMotionEvent;
-    if (D && typeof D.requestPermission === "function") D.requestPermission().then(s => { if (s === "granted") listen(); }).catch(() => {});
-    else if (D) listen();
-  };
-  addEventListener("touchend", ask, { once: true });
+);
 }
 
 const INBOX = "Inbox";
