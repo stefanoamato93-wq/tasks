@@ -233,7 +233,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v28</span>
+      <span class="ver">v29</span>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
     <div class="dayNav" id="dayNav">
@@ -391,7 +391,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, push, update, remove, onValue, serverTimestamp }
+import { getDatabase, ref, push as fbPush, update as fbUpdate, remove as fbRemove, onValue, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 // Same Firebase project as gym/grocery/calendar. No sign-in: the "taskApp" node is open in the rules.
@@ -409,6 +409,70 @@ const tasksRef = ref(db, "taskApp/tasks");
 const tRef = id => ref(db, "taskApp/tasks/" + id);
 const rootRef = ref(db, "taskApp");
 const $ = id => document.getElementById(id);
+
+// ---------- undo history (shake the phone to undo the last change) ----------
+// every write from the app saves the old values first; undo writes them back
+const undoStack = [];
+let undoing = false;
+const relPath = r => { const parts = []; for (let x = r; x && x.key && x.key !== "taskApp"; x = x.parent) parts.unshift(x.key); return parts.join("/"); };
+function localAt(path) {
+  const [top, id, ...rest] = path.split("/");
+  let v;
+  if (top === "tasks") { if (!id) return null; const r = rows.find(x => x.id === id); if (!r) return null; const { id: _, ...c } = r; v = c; }
+  else if (top === "lists") v = id ? listMeta[id] : listMeta;
+  else if (top === "settings") v = id ? settings[id] : settings;
+  else return null;
+  for (const k of rest) v = v == null ? undefined : v[k];
+  return v === undefined ? null : JSON.parse(JSON.stringify(v));
+}
+function remember(paths) {
+  if (undoing) return;
+  const now = Date.now(), last = undoStack[undoStack.length - 1];
+  // quick taps on the same thing (e.g. +1 g +1 g +1 g) are one undo step
+  if (last && now - last.t < 1200 && paths.every(p => p in last.before)) { last.t = now; return; }
+  const before = {}; for (const p of paths) before[p] = localAt(p);
+  undoStack.push({ t: now, before });
+  if (undoStack.length > 30) undoStack.shift();
+}
+function update(r, obj) { const b = relPath(r); remember(Object.keys(obj).map(k => b ? b + "/" + k : k)); return fbUpdate(r, obj); }
+function remove(r) { remember([relPath(r)]); return fbRemove(r); }
+function push(r, v) { const n = fbPush(r, v); if (!undoing) undoStack.push({ t: Date.now(), before: { [relPath(r) + "/" + n.key]: null } }); return n; }
+function undoLast() {
+  const e = undoStack.pop(); if (!e) { toast("Niente da annullare"); return; }
+  undoing = true;
+  fbUpdate(rootRef, e.before).finally(() => { undoing = false; });
+  toast("Annullato");
+}
+function askUndo() {
+  const e = undoStack[undoStack.length - 1];
+  if (!e) { toast("Niente da annullare"); return; }
+  const tp = Object.keys(e.before).find(p => p.startsWith("tasks/"));
+  const r = tp && rows.find(x => x.id === tp.split("/")[1]);
+  const name = r ? r.title : (tp && e.before[tp] && e.before[tp].title);
+  toast(name ? "Annullare Â«" + (name.length > 28 ? name.slice(0, 28) + "â€¦" : name) + "Â»?" : "Annullare l'ultima azione?", "Annulla", undoLast);
+}
+// shake: iPhone asks once for "Movimento" permission on the first tap
+{
+  let asked = false, hits = [], quiet = 0;
+  const listen = () => addEventListener("devicemotion", e => {
+    const a = e.acceleration && e.acceleration.x != null ? e.acceleration : null; if (!a) return;
+    const now = Date.now();
+    if (Math.hypot(a.x, a.y, a.z) < 14 || now < quiet) return;
+    hits = hits.filter(t => now - t < 900); hits.push(now);
+    if (hits.length >= 3) {
+      hits = []; quiet = now + 2000;
+      if (/INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;   // iPhone does its own undo while typing
+      askUndo();
+    }
+  });
+  const ask = () => {
+    if (asked) return; asked = true;
+    const D = window.DeviceMotionEvent;
+    if (D && typeof D.requestPermission === "function") D.requestPermission().then(s => { if (s === "granted") listen(); }).catch(() => {});
+    else if (D) listen();
+  };
+  addEventListener("touchend", ask, { once: true });
+}
 
 const INBOX = "Inbox";
 const FALLBACK_DEFAULT = "1 Urg And Imp";
@@ -583,7 +647,7 @@ onValue(tasksRef, snap => {
       const fix = { created: serverTimestamp() };
       if (!x.list) fix.list = defaultList();
       if (!x.due && x.source !== "goodtask") fix.due = todayStr();
-      update(tRef(id), fix).catch(() => {});
+      fbUpdate(tRef(id), fix).catch(() => {});
     }
   }
   loaded = true;
