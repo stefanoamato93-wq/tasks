@@ -237,7 +237,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v37</span>
+      <span class="ver">v38</span>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
     <div class="dayNav" id="dayNav">
@@ -341,6 +341,7 @@
     <div class="row">
       <input type="date" id="sDate">
       <input type="time" id="sTime">
+      <button id="sNoTime" title="Togli ora" style="flex:0 0 auto;padding:6px 10px;color:#ff6b6b">✕ ora</button>
     </div>
 
     <div class="sec">Categoria</div>
@@ -1301,6 +1302,7 @@ function renderSheet() {
   lbl.className = "dueLabel" + (isLate(r) ? " late" : "");
   if (document.activeElement !== $("sDate")) $("sDate").value = d ? dayKey(d) : "";
   if (document.activeElement !== $("sTime")) $("sTime").value = d && hasTime(r) ? pad(d.getHours()) + ":" + pad(d.getMinutes()) : "";
+  $("sNoTime").style.display = d && hasTime(r) ? "" : "none";
   // categories
   const cats = $("sCats"); cats.innerHTML = "";
   for (const name of allLists()) {
@@ -1383,6 +1385,7 @@ document.querySelectorAll("#sheet [data-d]").forEach(b => b.onclick = () => {
   setDue(addInterval(base, { freq, every: 1 }, sign), true);
 });
 $("sDate").onchange = () => { const v = $("sDate").value; const t = $("sTime").value; update(tRef(sheetId), { due: v ? (t ? v + "T" + t : v) : null }); };
+$("sNoTime").onclick = () => { const r = rows.find(x => x.id === sheetId); const d = r && dueDate(r); if (!d) return; $("sTime").value = ""; update(tRef(sheetId), { due: dayKey(d) }); };
 $("sTime").onchange = () => { const v = $("sDate").value || todayStr(); const t = $("sTime").value; update(tRef(sheetId), { due: t ? v + "T" + t : v }); };
 document.querySelectorAll("#sRep button").forEach(b => b.onclick = () => {
   const k = b.dataset.r;
