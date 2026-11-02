@@ -175,7 +175,19 @@
   .btns { display:flex; flex-wrap:wrap; gap:6px; }
   .btns button { padding:6px 10px; font-size:14px; }
   .btns button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
-  .catChip { display:inline-flex; align-items:center; gap:6px; }
+  .catPick, .moveList { display:flex; flex-direction:column; gap:12px; }
+.catGrp { display:flex; flex-direction:column; gap:6px; padding:8px; border:1px solid var(--line); border-radius:10px; }
+.catHead { font-size:13px; font-weight:600; color:var(--muted); }
+.catRow { display:flex; flex-wrap:wrap; gap:6px; }
+.catBtn { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; font-size:14px; text-align:left; }
+.catBtn.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+.catMatrix { display:grid; grid-template-columns:auto 1fr 1fr; gap:6px; align-items:stretch; }
+.catMatrix .ax { font-size:11px; color:var(--muted); text-align:center; align-self:end; }
+.catMatrix .ax.side { writing-mode:vertical-rl; transform:rotate(180deg); align-self:center; }
+.catBtn.cell { flex-direction:column; align-items:flex-start; gap:1px; padding:8px 10px; border-left:5px solid var(--c); }
+.catBtn.cell .ic { font-size:18px; line-height:1; }
+.catBtn.cell .act { font-weight:600; font-size:14px; }
+.catBtn.cell .sub { font-size:11px; opacity:.75; }
   .dayPick { display:grid; grid-template-columns:repeat(7, 1fr); gap:6px; }
   .dayPick button { padding:7px 0; font-size:14px; border-radius:8px; }
   .dayPick button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
@@ -237,7 +249,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v40</span>
+      <span class="ver">v41</span>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
     <div class="dayNav" id="dayNav">
@@ -345,7 +357,7 @@
     </div>
 
     <div class="sec">Categoria</div>
-    <div class="btns" id="sCats"></div>
+    <div class="catPick" id="sCats"></div>
 
     <div class="sec">Ripeti</div>
     <div class="btns" id="sRep">
@@ -800,15 +812,57 @@ function openMove(id) {
   const r = rows.find(x => x.id === id); if (!r) return;
   closeSwiped();
   $("moveTitle").textContent = "Sposta \"" + (r.title || "") + "\" in…";
-  const box = $("moveList"); box.innerHTML = "";
-  for (const name of allLists()) {
-    const b = document.createElement("button"); if (listOf(r) === name) b.className = "on";
-    const dot = document.createElement("span"); dot.className = "dot"; dot.style.background = colorOf(name);
-    b.append(dot, name);
-    b.onclick = () => { $("moveBack").classList.add("hidden"); moveTaskToList(id, name); };
-    box.append(b);
-  }
+  buildCatPicker($("moveList"), listOf(r), name => { $("moveBack").classList.add("hidden"); moveTaskToList(id, name); });
   $("moveBack").classList.remove("hidden");
+}
+// Category picker used by the editor and by "Sposta": Lavoro (with the
+// urgent/important lists as a 2x2 matrix) and Vita; lists not mapped go in Altri.
+const CAT_WORK_TOP = ["Startup Routines"];
+const CAT_MATRIX = [
+  ["Urg / Imp", "🔥", "Fai ora"], ["Imp / Not Urg", "📅", "Pianifica"],
+  ["Urg / Not Imp", "👥", "Delega"], ["Not Imp / Not Urg", "💤", "Dopo"]
+];
+const CAT_WORK_END = ["Awaiting", "End"];
+const CAT_LIFE = ["Start of Day", "Todo", "House", "End of Day"];
+function buildCatPicker(box, cur, onPick) {
+  box.innerHTML = "";
+  const names = allLists(), used = new Set();
+  const btn = (name, cls) => {
+    used.add(name);
+    const b = document.createElement("button"); b.type = "button";
+    b.className = "catBtn" + (cls ? " " + cls : "") + (cur === name ? " on" : "");
+    b.style.setProperty("--c", colorOf(name));
+    b.onclick = () => onPick(name);
+    return b;
+  };
+  const plain = name => { const b = btn(name); const d = document.createElement("span"); d.className = "dot"; d.style.background = colorOf(name); b.append(d, name); return b; };
+  const group = (title, kids) => {
+    if (!kids.length) return;
+    const g = document.createElement("div"); g.className = "catGrp";
+    const h = document.createElement("div"); h.className = "catHead"; h.textContent = title;
+    g.append(h, ...kids); box.append(g);
+  };
+  const row = list => { const d = document.createElement("div"); d.className = "catRow"; list.filter(n => names.includes(n)).forEach(n => d.append(plain(n))); return d.children.length ? [d] : []; };
+  const cells = CAT_MATRIX.filter(([n]) => names.includes(n));
+  const work = [...row(CAT_WORK_TOP)];
+  if (cells.length) {
+    const m = document.createElement("div"); m.className = "catMatrix";
+    m.innerHTML = '<span></span><span class="ax">Urgente</span><span class="ax">Non urgente</span><span class="ax side">Importante</span>';
+    const cell = ([n, ic, act]) => {
+      if (!names.includes(n)) { const s = document.createElement("span"); return s; }
+      const b = btn(n, "cell"); b.innerHTML = `<span class="ic">${ic}</span><span class="act">${act}</span><span class="sub">${esc(n)}</span>`; return b;
+    };
+    m.append(cell(CAT_MATRIX[0]), cell(CAT_MATRIX[1]));
+    const side2 = document.createElement("span"); side2.className = "ax side"; side2.textContent = "Non importante";
+    m.append(side2, cell(CAT_MATRIX[2]), cell(CAT_MATRIX[3]));
+    work.push(m);
+  }
+  work.push(...row(CAT_WORK_END));
+  group("💼 Lavoro", work);
+  group("🏠 Vita", row(CAT_LIFE));
+  const rest = document.createElement("div"); rest.className = "catRow";
+  names.filter(n => !used.has(n)).forEach(n => rest.append(plain(n)));
+  group("Altri", rest.children.length ? [rest] : []);
 }
 $("moveCancel").onclick = () => $("moveBack").classList.add("hidden");
 $("moveBack").onclick = e => { if (e.target === $("moveBack")) $("moveBack").classList.add("hidden"); };
@@ -1308,14 +1362,7 @@ function renderSheet() {
   if (document.activeElement !== $("sTime")) $("sTime").value = d && hasTime(r) ? pad(d.getHours()) + ":" + pad(d.getMinutes()) : "";
   $("sNoTime").style.display = d && hasTime(r) ? "" : "none";
   // categories
-  const cats = $("sCats"); cats.innerHTML = "";
-  for (const name of allLists()) {
-    const b = document.createElement("button"); b.className = "catChip" + (listOf(r) === name ? " on" : "");
-    const dot = document.createElement("span"); dot.className = "dot"; dot.style.background = colorOf(name);
-    b.append(dot, name);
-    b.onclick = () => update(tRef(r.id), { list: name });
-    cats.append(b);
-  }
+  buildCatPicker($("sCats"), listOf(r), name => update(tRef(r.id), { list: name }));
   // repeat
   const rep = r.repeat || {};
   const preset = isWorkdays(rep) ? "workdays" : rep.freq && (rep.every || 1) === 1 ? rep.freq : (rep.freq ? "custom" : "");

@@ -61,6 +61,7 @@ Shortcuts cannot read a reminder's repeat rule, so repeats are set by hand in th
 31 Oct 2026: the first full import sent dates as Italian text with the title stuck on (`1 nov 2026, 00:00Affitto`); all 184 were rewritten once to `YYYY-MM-DD[THH:MM]`.
 
 ## Changelog
+- v41 (2 Nov 2026): category picker (editor and Sposta, `buildCatPicker`) grouped as 💼 Lavoro (Startup Routines; the 4 urgent/important lists as a 2x2 matrix: 🔥 Fai ora, 📅 Pianifica, 👥 Delega, 💤 Dopo; Awaiting, End) and 🏠 Vita (Start of Day, Todo, House, End of Day); unmapped lists go in Altri.
 - v19 (31 Oct 2026): move a task to another category from any view: phone swipe left shows **Sposta** next to Elimina; computer has a ⇄ button and right-click; drag now drops on the whole group (header or its tasks), not just the header. `openMove()` picker; moves offer Annulla.
 - v18 (31 Oct 2026): removed all haptics (`haptic`, `hapticTrigger`): they did not work on Stefano's iPhone and the overlay caused the tap-anywhere bug. The tick animation stays.
 - v17 (31 Oct 2026): BUG FIX: on iPhone any tap on a task ticked it. The haptic overlay label was absolute but its circle was not `position:relative` (detached element, no computed style), so the label covered the whole row. Now `.ring` is `position:relative; overflow:hidden` and `hapticTrigger` always pins the parent. Ticking now shows the fill with a small pop and a strike-through for ~0.4 s before the task moves. Chart: bars now scale inside a fixed bar area (labels outside), so 38 and 33 no longer look the same.
