@@ -237,7 +237,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v39</span>
+      <span class="ver">v40</span>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
     <div class="dayNav" id="dayNav">
@@ -1357,7 +1357,11 @@ function renderSheet() {
     t.onchange = () => { p.subs[i].t = t.value; saveSubs(p); };
     const x = document.createElement("button"); x.className = "x"; x.textContent = "✕";
     x.onclick = () => { p.subs.splice(i, 1); saveSubs(p); };
-    li.append(t, x); ul.append(li);
+    // move a sub-task up or down
+    const mv = (txt, dir) => { const b = document.createElement("button"); b.className = "x"; b.textContent = txt; b.title = dir < 0 ? "Su" : "Giù";
+      const j = i + dir; if (j < 0 || j >= p.subs.length) b.style.visibility = "hidden";
+      b.onclick = () => { if (j < 0 || j >= p.subs.length) return; [p.subs[i], p.subs[j]] = [p.subs[j], p.subs[i]]; saveSubs(p); }; return b; };
+    li.append(t, mv("↑", -1), mv("↓", +1), x); ul.append(li);
   });
 }
 function saveSubs(p) { const r = cur(); update(tRef(r.id), { notes: buildNotes($("sNotes").value, p.subs) }); }
