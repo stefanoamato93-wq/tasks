@@ -237,7 +237,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v38</span>
+      <span class="ver">v39</span>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
     <div class="dayNav" id="dayNav">
@@ -679,7 +679,11 @@ function renderAll() {
   // day bar: arrows only in "Oggi"
   const onDay = view === "@today" && !q;
   $("dayNav").classList.toggle("off", !onDay);
-  $("todayLabel").innerHTML = `<span class="dTxt">${esc(longDate(onDay ? keyToDate(curDay()) : new Date()))}</span>` + (onDay ? `<span class="dayCnt">${dayCount}</span>` : "");
+  // counter of open tasks in every task list view (Oggi, Domani, Lunedì, Tutti, categories), on phone and computer
+  const listShown = !q && !["@calendar", "@done", "@chart"].includes(view);
+  const dayView = { "@tomorrow": tomorrowStr(), "@nextmon": nextMonStr() }[view];
+  const lblDate = onDay ? keyToDate(curDay()) : dayView ? keyToDate(dayView) : new Date();
+  $("todayLabel").innerHTML = `<span class="dTxt">${esc(longDate(lblDate))}</span>` + (listShown ? `<span class="dayCnt">${dayCount}</span>` : "");
   // "Oggi" sits on the left and only fades, so ‹ › never move under the finger
   $("dayToday").style.visibility = selDay && onDay ? "visible" : "hidden";
   if (sheetId) renderSheet();
@@ -868,7 +872,7 @@ function renderTasks() {
   futureIds = new Set(proj.map(r => r.id));
   const open = rows.filter(inView).concat(proj).sort(byDue);
   dayCount = open.length;   // shown beside the date in the day bar
-  if (!open.length) { box.innerHTML = `<div class="empty">Nessun task 🎉</div>`; return; }
+  if (!open.length) { dayCount = 0; box.innerHTML = `<div class="empty">Nessun task 🎉</div>`; return; }
   if (isSpecial(view)) {
     // grouped by category, in the user's order
     for (const name of allLists()) {
