@@ -61,6 +61,7 @@ Shortcuts cannot read a reminder's repeat rule, so repeats are set by hand in th
 31 Oct 2026: the first full import sent dates as Italian text with the title stuck on (`1 nov 2026, 00:00Affitto`); all 184 were rewritten once to `YYYY-MM-DD[THH:MM]`.
 
 ## Changelog
+- v43 (3 Nov 2026): adding a task (phone and computer) saves it and opens its sheet at once, to set date, category, repeat (`openWhenReady`). Bulk mode: ☑ in the header (Esc or Chiudi to leave); tap tasks to select, "Tutti" selects the current view; bar actions Fatto, Oggi, Domani, +1 g, +1 sett, Lunedì, Senza data, Categoria…, Ripeti…, Elimina. One write per action, with "Annulla" (`bulkUpdate`). Category picker: every category is a same-size tile (min 46 px, grid), so the non-matrix ones are easy to tap.
 - v41 (2 Nov 2026): category picker (editor and Sposta, `buildCatPicker`) grouped as 💼 Lavoro (Startup Routines; the 4 urgent/important lists as a 2x2 matrix: 🔥 Fai ora, 📅 Pianifica, 👥 Delega, 💤 Dopo; Awaiting, End) and 🏠 Vita (Start of Day, Todo, House, End of Day); unmapped lists go in Altri.
 - v19 (31 Oct 2026): move a task to another category from any view: phone swipe left shows **Sposta** next to Elimina; computer has a ⇄ button and right-click; drag now drops on the whole group (header or its tasks), not just the header. `openMove()` picker; moves offer Annulla.
 - v18 (31 Oct 2026): removed all haptics (`haptic`, `hapticTrigger`): they did not work on Stefano's iPhone and the overlay caused the tap-anywhere bug. The tick animation stays.

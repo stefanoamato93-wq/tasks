@@ -190,6 +190,25 @@
 .catBtn.cell .ic { font-size:18px; line-height:1; }
 .catBtn.cell .act { font-weight:600; font-size:14px; }
 .catBtn.cell .sub { font-size:11px; opacity:.75; }
+  /* every category is a same-size, easy-to-tap tile (overrides the rules above) */
+  .catRow { display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:8px; }
+  .catBtn { display:flex; padding:10px 12px; min-height:46px; font-size:15px; gap:8px; }
+  .catBtn.cell { display:flex; min-height:56px; padding:8px 10px; }
+  .catBtn.cell .ic { font-size:15px; }
+
+  /* bulk selection */
+  body.selecting ul.tasks > li .rowInner .ring { opacity:.35; pointer-events:none; }
+  body.selecting ul.tasks > li .rowInner .mv, body.selecting ul.tasks > li .rowInner .del { display:none; }
+  ul.tasks > li.sel .rowInner { background:var(--soft); box-shadow:inset 4px 0 0 var(--accent); }
+  #selBtn.on { color:#fff; background:var(--accent); }
+  .bulkBar { position:fixed; left:50%; transform:translateX(-50%); bottom:calc(12px + env(safe-area-inset-bottom)); width:min(720px, calc(100vw - 24px)); background:var(--card2); border:1px solid var(--line); border-radius:16px; padding:10px; z-index:9; box-shadow:0 8px 30px rgba(0,0,0,.6); }
+  .bulkTop { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+  .bulkTop .sp { flex:1; }
+  .bulkBtns { display:flex; flex-wrap:wrap; gap:6px; }
+  .bulkBtns button, .bulkBtns select { padding:8px 11px; font-size:14px; }
+  .bulkBtns button:disabled, .bulkBtns select:disabled { opacity:.4; }
+  body.selecting .bottom { display:none !important; }
+  body.selecting .wrap { padding-bottom:190px; }
   .dayPick { display:grid; grid-template-columns:repeat(7, 1fr); gap:6px; }
   .dayPick button { padding:7px 0; font-size:14px; border-radius:8px; }
   .dayPick button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
@@ -251,7 +270,8 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v42</span>
+      <span class="ver">v43</span>
+      <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
     <div class="dayNav" id="dayNav">
@@ -317,6 +337,36 @@
     <div class="swatches" id="swatches"></div>
     <div class="row"><span style="color:var(--muted);font-size:14px">Altro colore</span><input type="color" id="colorPick" style="flex:0 0 60px;height:36px;padding:2px"></div>
     <div class="actions"><span class="sp"></span><button class="primary" id="colorDone">Fatto</button></div>
+  </div>
+</div>
+
+<div class="bulkBar hidden" id="bulkBar">
+  <div class="bulkTop">
+    <b id="bulkCount">0 selezionati</b>
+    <button class="ghost" id="bulkAll">Tutti</button>
+    <button class="ghost" id="bulkNone">Nessuno</button>
+    <span class="sp"></span>
+    <button id="bulkExit">Chiudi</button>
+  </div>
+  <div class="bulkBtns">
+    <button data-b="done">✓ Fatto</button>
+    <button data-b="today">Oggi</button>
+    <button data-b="tomorrow">Domani</button>
+    <button data-b="+1d">+1 g</button>
+    <button data-b="+1w">+1 sett</button>
+    <button data-b="mon">Lunedì</button>
+    <button data-b="none">Senza data</button>
+    <button data-b="cat">Categoria…</button>
+    <select id="bulkRep">
+      <option value="">Ripeti…</option>
+      <option value="off">Mai</option>
+      <option value="day">Ogni giorno</option>
+      <option value="workdays">Giorni lavorativi</option>
+      <option value="week">Ogni settimana</option>
+      <option value="month">Ogni mese</option>
+      <option value="year">Ogni anno</option>
+    </select>
+    <button data-b="del" class="danger">Elimina</button>
   </div>
 </div>
 
@@ -665,7 +715,12 @@ function setView(v) {
   renderAll();
 }
 
+let selMode = false;
+const sel = new Set();          // selected task ids (bulk mode)
+let visibleIds = new Set();     // tasks drawn in the current view ("Tutti" button)
 function renderAll() {
+  visibleIds = new Set();
+  if (typeof updateBulkBar === "function") setTimeout(updateBulkBar, 0);
   if (!loaded) return;
   if (!isSpecial(view) && !allLists().includes(view)) view = "@today";
   renderLists();
@@ -1119,7 +1174,13 @@ function row(r, opts = {}) {
     li.append(sw, sm);
     addRowSwipe(li, inner, () => deleteTask(r.id));
   }
-  li.onclick = () => { if (li.classList.contains("swiped")) { closeSwiped(); return; } openSheet(r.id); };
+  visibleIds.add(r.id);
+  if (sel.has(r.id)) li.classList.add("sel");
+  li.onclick = () => {
+    if (selMode) { sel.has(r.id) ? sel.delete(r.id) : sel.add(r.id); li.classList.toggle("sel", sel.has(r.id)); updateBulkBar(); return; }
+    if (li.classList.contains("swiped")) { closeSwiped(); return; }
+    openSheet(r.id);
+  };
   if (!opts.future) {
     li.draggable = true;
     li.addEventListener("dragstart", e => { dragId = r.id; li.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", r.id); });
@@ -1303,15 +1364,88 @@ $("addForm").onsubmit = e => {
   e.preventDefault();
   const title = $("newTitle").value.trim();
   if (!title) return;
-  push(tasksRef, {
+  const newRef = push(tasksRef, {
     title, done: false, source: "web", created: serverTimestamp(),
     list: isSpecial(view) ? defaultList() : view,
     due: view === "@calendar" && calSel ? calSel : view === "@today" ? curDay() : view === "@tomorrow" ? tomorrowStr() : view === "@nextmon" ? nextMonStr() : todayStr()
   });
   $("newTitle").value = "";
-  // phone: close the box and the keyboard after saving
-  if (window.matchMedia("(max-width:700px)").matches) { $("newTitle").blur(); document.body.classList.remove("adding"); }
-  else toast("✓ Aggiunto");
+  // close the box and the keyboard, then open the new task's sheet (date, category, repeat…)
+  $("newTitle").blur(); document.body.classList.remove("adding");
+  openWhenReady(newRef.key);
+};
+function openWhenReady(id, n = 0) {
+  if (rows.some(r => r.id === id)) openSheet(id);
+  else if (n < 30) setTimeout(() => openWhenReady(id, n + 1), 100);
+}
+
+// ---------- bulk edit ----------
+function setSelMode(on) {
+  selMode = on; sel.clear();
+  document.body.classList.toggle("selecting", on);
+  $("selBtn").classList.toggle("on", on);
+  $("bulkBar").classList.toggle("hidden", !on);
+  closeSwiped && closeSwiped();
+  renderAll();
+}
+function updateBulkBar() {
+  if (!selMode) return;
+  for (const id of [...sel]) if (!rows.some(r => r.id === id)) sel.delete(id);
+  $("bulkCount").textContent = sel.size + (sel.size === 1 ? " selezionato" : " selezionati");
+  document.querySelectorAll("#bulkBar .bulkBtns button, #bulkRep").forEach(b => b.disabled = !sel.size);
+}
+$("selBtn").onclick = () => setSelMode(!selMode);
+$("bulkExit").onclick = () => setSelMode(false);
+$("bulkAll").onclick = () => { visibleIds.forEach(id => sel.add(id)); renderAll(); };
+$("bulkNone").onclick = () => { sel.clear(); renderAll(); };
+document.addEventListener("keydown", e => { if (e.key === "Escape" && selMode && !sheetId) setSelMode(false); });
+const selRows = () => rows.filter(r => sel.has(r.id));
+// change many tasks in one write; "Annulla" puts the old values back
+function bulkUpdate(fn, label) {
+  const upd = {}, back = {};
+  for (const r of selRows()) {
+    const ch = fn(r); if (!ch) continue;
+    for (const k in ch) { upd["tasks/" + r.id + "/" + k] = ch[k]; back["tasks/" + r.id + "/" + k] = r[k] === undefined ? null : r[k]; }
+  }
+  if (!Object.keys(upd).length) return;
+  const n = sel.size;
+  update(rootRef, upd).then(() => toast(label + " · " + n, "Annulla", () => update(rootRef, back)));
+}
+function keepTime(r, d) {
+  const old = dueDate(r);
+  return dayKey(d) + (old && hasTime(r) ? "T" + pad(old.getHours()) + ":" + pad(old.getMinutes()) : "");
+}
+document.querySelectorAll("#bulkBar [data-b]").forEach(b => b.onclick = () => {
+  const k = b.dataset.b;
+  if (!sel.size) return;
+  if (k === "del") {
+    const list = selRows(), upd = {}, back = {};
+    list.forEach(r => { const { id, ...c } = r; upd["tasks/" + id] = null; back["tasks/" + id] = c; });
+    update(rootRef, upd).then(() => toast("Eliminati " + list.length, "Annulla", () => update(rootRef, back)));
+    sel.clear(); renderAll(); return;
+  }
+  if (k === "done") { selRows().forEach(r => toggle(r, true)); toast("✓ Completati " + sel.size); sel.clear(); renderAll(); return; }
+  if (k === "cat") {
+    $("moveTitle").textContent = "Sposta " + sel.size + " task in…";
+    buildCatPicker($("moveList"), null, name => { $("moveBack").classList.add("hidden"); bulkUpdate(() => ({ list: name }), "→ " + name); });
+    $("moveBack").classList.remove("hidden");
+    return;
+  }
+  const today = startOfDay(new Date());
+  bulkUpdate(r => {
+    if (k === "none") return { due: null };
+    if (k === "today") return { due: keepTime(r, today) };
+    if (k === "tomorrow") { const t = new Date(today); t.setDate(t.getDate() + 1); return { due: keepTime(r, t) }; }
+    if (k === "mon") { const t = new Date(today); do { t.setDate(t.getDate() + 1); } while (t.getDay() !== 1); return { due: keepTime(r, t) }; }
+    const base = dueDate(r) || today;
+    return { due: keepTime(r, addInterval(base, { freq: k === "+1d" ? "day" : "week", every: 1 })) };
+  }, "Data cambiata");
+});
+$("bulkRep").onchange = () => {
+  const v = $("bulkRep").value; $("bulkRep").value = "";
+  if (!v || !sel.size) return;
+  const rep = v === "off" ? null : v === "workdays" ? { freq: "week", every: 1, days: [1, 2, 3, 4, 5] } : { freq: v, every: 1 };
+  bulkUpdate(() => ({ repeat: rep }), "Ripetizione cambiata");
 };
 document.querySelectorAll("#bar button").forEach(b => b.onclick = () => setView(b.dataset.v));
 // + opens the add box; saving or tapping elsewhere closes it (phone)
