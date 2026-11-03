@@ -1547,7 +1547,7 @@ document.addEventListener("keydown", e => {
   if (!$("moveBack").classList.contains("hidden")) return;
   const a = document.activeElement;
   if (a && a.tagName === "TEXTAREA") return;
-  if (a && a.id === "sNewSub" && a.value.trim()) return;      // that Enter adds the sub-task
+  if (a && a.id === "sNewSub") return;      // Enter in the sub-task box adds a sub-task, never closes the page
   if (a && a.tagName === "INPUT" && a.closest("#sSubs")) return;
   e.preventDefault();
   if (a && a.blur) a.blur();

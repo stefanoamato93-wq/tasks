@@ -61,7 +61,7 @@ Shortcuts cannot read a reminder's repeat rule, so repeats are set by hand in th
 31 Oct 2026: the first full import sent dates as Italian text with the title stuck on (`1 nov 2026, 00:00Affitto`); all 184 were rewritten once to `YYYY-MM-DD[THH:MM]`.
 
 ## Changelog
-- v52 (3 Nov 2026): sub-tasks reorder by dragging the handle (mouse and finger); drop a task onto another (phone: hold 0.5 s, then drag) to make it a sub-task, after a confirm, with undo; matrix tiles show only the list name.
+- v52 (3 Nov 2026): sub-tasks reorder by dragging the handle (mouse and finger); drop a task onto another (phone: hold 0.5 s, then drag) to make it a sub-task, after a confirm, with undo; matrix tiles show only the list name; Enter in the sub-task box never closes the task page.
 - v51 (3 Nov 2026): computer: sidebar uses the full screen height (zoom .8 made it stop early and scroll).
 - v50 (3 Nov 2026): computer: task sheet in 2 columns (date, repeat, sub-tasks, notes left; categories right) so nothing needs scrolling; categories in the sidebar can be reordered by drag and drop.
 - v49 (3 Nov 2026): computer: task sheet wider and taller, Lavoro and Vita categories side by side so they fit without scrolling.
