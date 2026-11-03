@@ -193,7 +193,13 @@
   /* every category is a same-size, easy-to-tap tile (overrides the rules above) */
   .catRow { display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:8px; }
   .catBtn { display:flex; padding:10px 12px; min-height:46px; font-size:15px; gap:8px; }
-  .catBtn.cell { display:flex; min-height:56px; padding:8px 10px; }
+  .catBtn.cell { display:flex; min-height:64px; padding:10px 12px; justify-content:center; }
+  /* 4 matrix squares: no icons, each its own tinted colour; the chosen one is filled solid */
+  .catMatrix .catBtn.cell { border:2px solid var(--q); border-left-width:2px; color:var(--text, #eee);
+    background:color-mix(in srgb, var(--q) 22%, var(--card)); }
+  .catMatrix .catBtn.cell .act { font-size:16px; color:var(--q); }
+  .catMatrix .catBtn.cell.on { background:var(--q); border-color:var(--q); color:#fff; }
+  .catMatrix .catBtn.cell.on .act { color:#fff; }
   .catBtn.cell .ic { font-size:15px; }
 
   /* bulk selection */
@@ -270,7 +276,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v46</span>
+      <span class="ver">v47</span>
       <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
@@ -876,9 +882,10 @@ function openMove(id) {
 // Category picker used by the editor and by "Sposta": Lavoro (with the
 // urgent/important lists as a 2x2 matrix) and Vita; lists not mapped go in Altri.
 const CAT_WORK_TOP = ["Startup Routines"];
+// [list, tile colour, action] - each square has its own fixed colour so the 4 are easy to tell apart
 const CAT_MATRIX = [
-  ["Urg / Imp", "🔥", "Fai ora"], ["Imp / Not Urg", "📅", "Pianifica"],
-  ["Urg / Not Imp", "👥", "Delega"], ["Not Imp / Not Urg", "💤", "Dopo"]
+  ["Urg / Imp", "#e5484d", "Fai ora"], ["Imp / Not Urg", "#3e8ef7", "Pianifica"],
+  ["Urg / Not Imp", "#f5a524", "Delega"], ["Not Imp / Not Urg", "#8b8d98", "Dopo"]
 ];
 const CAT_WORK_END = ["Awaiting", "End"];
 const CAT_LIFE = ["Start of Day", "Todo", "House", "End of Day"];
@@ -906,9 +913,10 @@ function buildCatPicker(box, cur, onPick) {
   if (cells.length) {
     const m = document.createElement("div"); m.className = "catMatrix";
     m.innerHTML = '<span></span><span class="ax">Urgente</span><span class="ax">Non urgente</span><span class="ax side">Importante</span>';
-    const cell = ([n, ic, act]) => {
+    const cell = ([n, col, act]) => {
       if (!names.includes(n)) { const s = document.createElement("span"); return s; }
-      const b = btn(n, "cell"); b.innerHTML = `<span class="ic">${ic}</span><span class="act">${act}</span><span class="sub">${esc(n)}</span>`; return b;
+      const b = btn(n, "cell"); b.style.setProperty("--q", col);
+      b.innerHTML = `<span class="act">${act}</span><span class="sub">${esc(n)}</span>`; return b;
     };
     m.append(cell(CAT_MATRIX[0]), cell(CAT_MATRIX[1]));
     const side2 = document.createElement("span"); side2.className = "ax side"; side2.textContent = "Non importante";
@@ -1381,8 +1389,9 @@ $("addForm").onsubmit = e => {
     due: view === "@calendar" && calSel ? calSel : view === "@today" ? curDay() : view === "@tomorrow" ? tomorrowStr() : view === "@nextmon" ? nextMonStr() : todayStr()
   });
   $("newTitle").value = "";
-  // close the box and the keyboard, then open the new task's sheet (date, category, repeat…)
-  $("newTitle").blur(); document.body.classList.remove("adding");
+  // open the new task's sheet (date, category, repeat…); when it closes, the cursor goes back to the add box
+  $("newTitle").blur();
+  backToAdd = true;
   openWhenReady(newRef.key);
 };
 // computer: Shift + "+" / Shift + "-" move the open (or selected) tasks by one day; Shift + Canc deletes.
@@ -1399,7 +1408,7 @@ document.addEventListener("keydown", e => {
   if (!targets.length) return;
   e.preventDefault();
   if (del) {
-    if (sheetId) { const id = sheetId; sheetId = null; $("sheetBack").classList.add("hidden"); deleteTask(id); return; }
+    if (sheetId) { const id = sheetId; sheetId = null; backToAdd = false; $("sheetBack").classList.add("hidden"); deleteTask(id); return; }
     const upd = {}, back = {};
     targets.forEach(r => { const { id, ...c } = r; upd["tasks/" + id] = null; back["tasks/" + id] = c; });
     update(rootRef, upd).then(() => toast("Eliminati " + targets.length, "Annulla", () => update(rootRef, back)));
@@ -1517,19 +1526,25 @@ document.addEventListener("keydown", e => {
 });
 
 // ---------- task sheet (every change saves at once) ----------
-let sheetId = null;
+let sheetId = null, backToAdd = false;
 const cur = () => rows.find(r => r.id === sheetId);
 function openSheet(id) {
   sheetId = id;
-  const r = cur(); if (!r) return;
+  const r = cur(); if (!r) { backToAdd = false; return; }
   $("sTitle").value = r.title || "";
   $("sNotes").value = parseNotes(r.notes).text;
   $("sNewSub").value = "";
   $("sheetBack").classList.remove("hidden");
   fitTitle();
   renderSheet();
+  $("sheet").scrollTop = 0;     // always open at the top (date first)
+  requestAnimationFrame(() => { $("sheet").scrollTop = 0; });
 }
-function closeSheet() { flushText(); sheetId = null; $("sheetBack").classList.add("hidden"); }
+function closeSheet() {
+  flushText(); sheetId = null; $("sheetBack").classList.add("hidden");
+  // just added a task: put the cursor back in the add box, ready for the next one
+  if (backToAdd) { backToAdd = false; document.body.classList.add("adding"); $("newTitle").focus(); }
+}
 function flushText() {
   const r = cur(); if (!r) return;
   const title = $("sTitle").value.trim() || "(vuoto)";
@@ -1663,7 +1678,7 @@ $("sDup").onclick = () => {
   toast("Duplicato");
   closeSheet();
 };
-$("sDelete").onclick = () => { const id = sheetId; sheetId = null; $("sheetBack").classList.add("hidden"); deleteTask(id); };
+$("sDelete").onclick = () => { const id = sheetId; sheetId = null; backToAdd = false; $("sheetBack").classList.add("hidden"); deleteTask(id); };
 $("sClose").onclick = closeSheet;
 $("sheetBack").onclick = e => { if (e.target === $("sheetBack")) closeSheet(); };
 document.addEventListener("keydown", e => { if (e.key === "Escape" && sheetId) closeSheet(); });
