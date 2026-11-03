@@ -299,7 +299,7 @@ ul.tasks > li.dragging { opacity:.4; }
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v52</span>
+      <span class="ver">v53</span>
       <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
@@ -1014,6 +1014,8 @@ const byDue = (a, b) => {
   if (da) return -1; if (dbb) return 1;
   return (b.created || 0) - (a.created || 0);
 };
+// inside each group, tasks go A-Z by name (ignores case and accents; "Task 2" before "Task 10")
+const byTitle = (a, b) => (a.title || "").localeCompare(b.title || "", "it", { sensitivity: "base", numeric: true });
 
 let futureIds = new Set();
 let dayCount = 0;
@@ -1047,7 +1049,7 @@ function renderTasks() {
   if (isSpecial(view)) {
     // grouped by category, in the user's order
     for (const name of allLists()) {
-      const items = open.filter(r => listOf(r) === name);
+      const items = open.filter(r => listOf(r) === name).sort(byTitle);
       if (items.length) box.append(groupBlock(view + "|" + name, name, items, { color: colorOf(name), list: name }));
     }
   } else {
@@ -1059,6 +1061,7 @@ function renderTasks() {
       else if (dayDiff(d) < 0) late.push(r);
       else { const k = dayKey(d); if (!days.has(k)) days.set(k, []); days.get(k).push(r); }
     }
+    late.sort(byTitle); none.sort(byTitle); for (const items of days.values()) items.sort(byTitle);
     if (late.length) box.append(groupBlock(view + "|late", "In ritardo", late, { late: true }));
     for (const [k, items] of days) box.append(groupBlock(view + "|" + k, dayTitle(k), items));
     if (none.length) box.append(groupBlock(view + "|none", "Senza data", none));
@@ -1100,7 +1103,7 @@ function renderSearch() {
   }).sort((a, b) => (a.done - b.done) || byDue(a, b));
   if (!hits.length) { box.innerHTML = `<div class="empty">Nessun risultato</div>`; return; }
   for (const name of allLists()) {
-    const items = hits.filter(r => listOf(r) === name);
+    const items = hits.filter(r => listOf(r) === name).sort((a, b) => (a.done - b.done) || byTitle(a, b));
     if (items.length) box.append(groupBlock("search|" + name, name, items, { color: colorOf(name), list: name }));
   }
 }
