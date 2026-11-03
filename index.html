@@ -168,6 +168,13 @@
   .back { position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; align-items:flex-end; justify-content:center; z-index:20; }
   .sheet { background:var(--card); width:100%; max-width:540px; border-radius:16px 16px 0 0; padding:16px 16px calc(16px + env(safe-area-inset-bottom)); max-height:92vh; overflow:auto; }
   @media (min-width:700px) { .back { align-items:center; } .sheet { border-radius:16px; } }
+/* computer: wider, taller sheet; Lavoro and Vita side by side so all categories fit without scrolling
+   (118vh because body has zoom .8, so it is ~95% of the real screen) */
+@media (min-width:701px) {
+  .sheet { max-width:980px; max-height:118vh; }
+  #sCats { display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start; }
+  #sCats .catBtn, #sCats .catBtn.cell { height:48px; }
+}
   .sheet .sec { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:16px 0 6px; }
   .sheetHead { display:flex; gap:10px; align-items:center; position:sticky; top:-16px; margin:-16px -16px 0; padding:12px 16px; background:var(--card); z-index:2; border-bottom:1px solid var(--line); }
   .sheetHead .titleIn { flex:1; min-width:0; }
@@ -277,7 +284,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v48</span>
+      <span class="ver">v49</span>
       <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
