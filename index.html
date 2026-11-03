@@ -171,9 +171,15 @@
 /* computer: wider, taller sheet; Lavoro and Vita side by side so all categories fit without scrolling
    (118vh because body has zoom .8, so it is ~95% of the real screen) */
 @media (min-width:701px) {
-  .sheet { max-width:980px; max-height:118vh; }
-  #sCats { display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start; }
-  #sCats .catBtn, #sCats .catBtn.cell { height:48px; }
+  /* 2 columns: date, repeat, sub-tasks, notes on the left; all categories on the right */
+  #sheet { max-width:1120px; max-height:118vh; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    column-gap:24px; align-content:start; }
+  #sheet { grid-template-rows:auto auto 1fr; }
+  #sheet > .sheetHead { grid-column:1 / -1; grid-row:1; }
+  #sheet > .sL1 { grid-column:1; grid-row:2; }
+  #sheet > .sL2 { grid-column:1; grid-row:3; }
+  #sheet > .sR { grid-column:2; grid-row:2 / span 2; }
+  #sCats .catBtn, #sCats .catBtn.cell { height:46px; }
 }
   .sheet .sec { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:16px 0 6px; }
   .sheetHead { display:flex; gap:10px; align-items:center; position:sticky; top:-16px; margin:-16px -16px 0; padding:12px 16px; background:var(--card); z-index:2; border-bottom:1px solid var(--line); }
@@ -284,7 +290,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v49</span>
+      <span class="ver">v50</span>
       <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
@@ -398,6 +404,7 @@
       <textarea class="titleIn" id="sTitle" rows="1"></textarea>
       <button class="primary" id="sClose">Fatto</button>
     </div>
+    <div class="sL1">
 
     <div class="sec">Data</div>
     <div class="dayStep">
@@ -422,8 +429,12 @@
       <button id="sNoTime" title="Togli ora" style="flex:0 0 auto;padding:6px 10px;color:#ff6b6b">✕ ora</button>
     </div>
 
-    <div class="sec">Categoria</div>
+    </div>
+    <div class="sR">
+    <div class="sec" id="secCat">Categoria</div>
     <div class="catPick" id="sCats"></div>
+    </div>
+    <div class="sL2">
 
     <div class="sec">Ripeti</div>
     <div class="btns" id="sRep">
@@ -466,6 +477,7 @@
       <button class="danger" id="sDelete">Elimina</button>
       <button id="sDup">Duplica</button>
 
+    </div>
     </div>
   </div>
 </div>
@@ -814,8 +826,26 @@ function navItem(key, label, n, idx, names) {
     const cnt = document.createElement("span"); cnt.className = "n"; cnt.textContent = n || ""; li.append(cnt);
   }
   li.onclick = () => setView(key);
-  if (!isSpecial(key)) dropTarget(li, id => moveTaskToList(id, key));
+  if (!isSpecial(key)) {
+    dropTarget(li, id => moveTaskToList(id, key));
+    // computer: drag a category onto another one to put it in that place
+    li.draggable = true;
+    li.addEventListener("dragstart", e => { if (dragId) return; dragList = key; li.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", key); });
+    li.addEventListener("dragend", () => { li.classList.remove("dragging"); setTimeout(() => dragList = null, 50); });
+    li.addEventListener("dragover", e => { if (!dragList || dragList === key) return; e.preventDefault(); li.classList.add("drop"); });
+    li.addEventListener("dragleave", () => li.classList.remove("drop"));
+    li.addEventListener("drop", e => { if (!dragList) return; e.preventDefault(); li.classList.remove("drop"); const from = dragList; dragList = null; if (from !== key) reorderList(names, from, key); });
+  }
   return li;
+}
+let dragList = null;
+function reorderList(names, from, to) {
+  const order = names.filter(n => n !== from);
+  const i = order.indexOf(to); if (i < 0) return;
+  order.splice(names.indexOf(from) < names.indexOf(to) ? i + 1 : i, 0, from);   // down: after the target; up: before it
+  const upd = {};
+  order.forEach((n, k) => { upd["lists/" + listKey(n) + "/name"] = n; upd["lists/" + listKey(n) + "/order"] = k; });
+  update(rootRef, upd);
 }
 
 function pickColor(name) {
