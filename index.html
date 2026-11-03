@@ -270,7 +270,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v44</span>
+      <span class="ver">v45</span>
       <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
@@ -1374,6 +1374,35 @@ $("addForm").onsubmit = e => {
   $("newTitle").blur(); document.body.classList.remove("adding");
   openWhenReady(newRef.key);
 };
+// computer: Shift + "+" / Shift + "-" move the open (or selected) tasks by one day; Shift + Canc deletes.
+// Works on Italian and English keyboards (Shift turns "+" into "*" and "-" into "_" on Italian ones).
+document.addEventListener("keydown", e => {
+  if (!e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+  const plus = e.key === "+" || e.key === "*" || ["NumpadAdd", "Equal", "BracketRight"].includes(e.code);
+  const minus = e.key === "-" || e.key === "_" || ["NumpadSubtract", "Minus", "Slash"].includes(e.code);
+  const del = e.key === "Delete" || e.key === "Backspace";
+  if (!plus && !minus && !del) return;
+  const a = document.activeElement;
+  if (a && (a.tagName === "TEXTAREA" || ["newTitle", "q", "sNewSub"].includes(a.id) || a.closest("#sSubs"))) return;
+  const targets = sheetId ? rows.filter(r => r.id === sheetId) : selMode ? selRows() : [];
+  if (!targets.length) return;
+  e.preventDefault();
+  if (del) {
+    if (sheetId) { const id = sheetId; sheetId = null; $("sheetBack").classList.add("hidden"); deleteTask(id); return; }
+    const upd = {}, back = {};
+    targets.forEach(r => { const { id, ...c } = r; upd["tasks/" + id] = null; back["tasks/" + id] = c; });
+    update(rootRef, upd).then(() => toast("Eliminati " + targets.length, "Annulla", () => update(rootRef, back)));
+    sel.clear(); renderAll(); return;
+  }
+  const n = plus ? 1 : -1, upd = {}, back = {};
+  targets.forEach(r => {
+    const base = dueDate(r) || startOfDay(new Date());
+    upd["tasks/" + r.id + "/due"] = keepTime(r, addInterval(base, { freq: "day", every: 1 }, n));
+    back["tasks/" + r.id + "/due"] = r.due === undefined ? null : r.due;
+  });
+  const first = upd["tasks/" + targets[0].id + "/due"];
+  update(rootRef, upd).then(() => toast((n > 0 ? "+1 g → " : "−1 g → ") + (targets.length > 1 ? targets.length + " task" : fmtDue({ due: first })), "Annulla", () => update(rootRef, back)));
+});
 // computer: Enter closes the task sheet (except in notes, or while typing a sub-task)
 document.addEventListener("keydown", e => {
   if (e.key !== "Enter" || !sheetId || e.isComposing || e.shiftKey) return;
