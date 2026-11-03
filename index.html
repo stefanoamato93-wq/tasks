@@ -270,7 +270,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v45</span>
+      <span class="ver">v46</span>
       <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
@@ -837,14 +837,15 @@ function renameList(old) {
   rows.forEach(r => { if (listOf(r) === old) upd["tasks/" + r.id + "/list"] = nu; });
   const m = metaOf(old);
   upd["lists/" + listKey(old)] = null;
-  upd["lists/" + listKey(nu)] = { name: nu, color: m.color || colorOf(old), order: m.order != null ? m.order : allLists().indexOf(old) };
+  upd["lists/" + listKey(nu)] = { name: nu, color: m.color || colorOf(old), order: m.order != null ? m.order : allLists().indexOf(old), group: m.group || null };
   if (defaultList() === old) upd["settings/defaultList"] = nu;
   update(rootRef, upd).then(() => { if (view === old) setView(nu); });
 }
 $("newListBtn").onclick = () => {
   const nu = (prompt("Nome del nuovo elenco") || "").trim();
   if (!nu || allLists().includes(nu)) return;
-  update(ref(db, "taskApp/lists/" + listKey(nu)), { name: nu, color: hashColor(nu), order: allLists().length });
+  const grp = confirm("\"" + nu + "\" è Lavoro?\n\nOK = 💼 Lavoro\nAnnulla = 🏠 Vita") ? "work" : "life";
+  update(ref(db, "taskApp/lists/" + listKey(nu)), { name: nu, color: hashColor(nu), order: allLists().length, group: grp });
 };
 $("editListsBtn").onclick = () => { editLists = !editLists; renderAll(); };
 $("navClose").onclick = () => $("nav").classList.remove("open");
@@ -915,8 +916,12 @@ function buildCatPicker(box, cur, onPick) {
     work.push(m);
   }
   work.push(...row(CAT_WORK_END));
+  // other lists go where their "group" says (set when the list is created)
+  const fixed = new Set([...CAT_WORK_TOP, ...CAT_MATRIX.map(c => c[0]), ...CAT_WORK_END, ...CAT_LIFE]);
+  const byGroup = g => names.filter(n => !fixed.has(n) && metaOf(n).group === g);
+  work.push(...row(byGroup("work")));
   group("💼 Lavoro", work);
-  group("🏠 Vita", row(CAT_LIFE));
+  group("🏠 Vita", [...row(CAT_LIFE), ...row(byGroup("life"))]);
   const rest = document.createElement("div"); rest.className = "catRow";
   names.filter(n => !used.has(n)).forEach(n => rest.append(plain(n)));
   group("Altri", rest.children.length ? [rest] : []);
@@ -1025,6 +1030,12 @@ $("searchBtn").onclick = () => {
 };
 $("searchBtn").addEventListener("pointerdown", e => e.preventDefault());   // keep focus in the box
 $("q").addEventListener("blur", () => { if (!q) document.body.classList.remove("searchOn"); });
+// done searching: a tap anywhere else (not on a result or an open task) clears the search
+document.addEventListener("pointerdown", e => {
+  if (!q) return;
+  if (e.target.closest("#searchRow, #searchBtn, ul.tasks, .sheet, .back, .toast")) return;
+  exitSearch();
+}, true);
 function renderSearch() {
   const box = $("listView"); box.innerHTML = "";
   const words = q.split(/\s+/).filter(Boolean);

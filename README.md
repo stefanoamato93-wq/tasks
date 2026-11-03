@@ -61,6 +61,7 @@ Shortcuts cannot read a reminder's repeat rule, so repeats are set by hand in th
 31 Oct 2026: the first full import sent dates as Italian text with the title stuck on (`1 nov 2026, 00:00Affitto`); all 184 were rewritten once to `YYYY-MM-DD[THH:MM]`.
 
 ## Changelog
+- v46 (3 Nov 2026): lists have a group (Lavoro / Vita) saved in taskApp/lists/{key}/group. A new list asks Lavoro or Vita; the category picker puts it there. Raf 1:1 set to Lavoro. Search clears itself when you tap anywhere outside the search box, results or the open task.
 - v45 (3 Nov 2026): computer shortcuts on the open task sheet (also right after adding) or on the bulk selection: Shift + "+" = +1 day, Shift + "-" = −1 day, Shift + Canc (or Backspace) = delete. All with "Annulla". Italian layout handled (Shift gives `*` / `_`). Ignored while typing in notes, search, add box or sub-tasks.
 - v44 (3 Nov 2026): computer: Enter closes the task sheet (type, Enter = add + open sheet, Enter again = close). Not inside notes or while typing a sub-task.
 - v43 (3 Nov 2026): adding a task (phone and computer) saves it and opens its sheet at once, to set date, category, repeat (`openWhenReady`). Bulk mode: ☑ in the header (Esc or Chiudi to leave); tap tasks to select, "Tutti" selects the current view; bar actions Fatto, Oggi, Domani, +1 g, +1 sett, Lunedì, Senza data, Categoria…, Ripeti…, Elimina. One write per action, with "Annulla" (`bulkUpdate`). Category picker: every category is a same-size tile (min 46 px, grid), so the non-matrix ones are easy to tap.
