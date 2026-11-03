@@ -270,7 +270,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v43</span>
+      <span class="ver">v44</span>
       <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
@@ -1374,6 +1374,18 @@ $("addForm").onsubmit = e => {
   $("newTitle").blur(); document.body.classList.remove("adding");
   openWhenReady(newRef.key);
 };
+// computer: Enter closes the task sheet (except in notes, or while typing a sub-task)
+document.addEventListener("keydown", e => {
+  if (e.key !== "Enter" || !sheetId || e.isComposing || e.shiftKey) return;
+  if (!$("moveBack").classList.contains("hidden")) return;
+  const a = document.activeElement;
+  if (a && a.tagName === "TEXTAREA") return;
+  if (a && a.id === "sNewSub" && a.value.trim()) return;      // that Enter adds the sub-task
+  if (a && a.tagName === "INPUT" && a.closest("#sSubs")) return;
+  e.preventDefault();
+  if (a && a.blur) a.blur();
+  closeSheet();
+});
 function openWhenReady(id, n = 0) {
   if (rows.some(r => r.id === id)) openSheet(id);
   else if (n < 30) setTimeout(() => openWhenReady(id, n + 1), 100);
