@@ -139,6 +139,8 @@
   .meta { font-size:12px; color:var(--muted); display:flex; flex-wrap:wrap; gap:3px 10px; margin-top:2px; align-items:center; }
   .meta .late { color:var(--late); }
   .meta .rep { opacity:.7; }
+.meta .heavyTag { border:1px solid #ff9f0a; color:#ff9f0a; border-radius:6px; padding:0 6px; font-size:11px; font-weight:600; }
+#sHeavy.on { background:#ff9f0a; border-color:#ff9f0a; color:#1c1c1e; font-weight:600; }
   .chip { border-radius:6px; padding:0 6px; color:#fff; font-size:11px; }
   .subBtn { border:0; background:var(--soft); color:#9db8ff; border-radius:6px; padding:1px 7px; font-size:12px; }
   ul.subs { list-style:none; margin:6px 0 0; padding:0; }
@@ -299,7 +301,7 @@ ul.tasks > li.dragging { opacity:.4; }
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v53</span>
+      <span class="ver">v54</span>
       <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
@@ -436,6 +438,9 @@ ul.tasks > li.dragging { opacity:.4; }
       <input type="date" id="sDate">
       <input type="time" id="sTime">
       <button id="sNoTime" title="Togli ora" style="flex:0 0 auto;padding:6px 10px;color:#ff6b6b">✕ ora</button>
+    </div>
+    <div class="btns" style="margin-top:10px">
+      <button id="sHeavy" type="button">Pesante</button>
     </div>
 
     </div>
@@ -1200,6 +1205,7 @@ function row(r, opts = {}) {
   if (due) { const s = document.createElement("span"); s.textContent = due; if (!r.done && !opts.future && isLate(r)) s.className = "late"; meta.append(s); }
   const rep = fmtRepeat(r.repeat);
   if (rep) { const s = document.createElement("span"); s.className = "rep"; s.textContent = "↻ " + rep; meta.append(s); }
+  if (r.heavy) { const s = document.createElement("span"); s.className = "heavyTag"; s.textContent = "Pesante"; meta.append(s); }
   if (opts.showList) { const s = document.createElement("span"); s.className = "chip"; s.style.background = col; s.textContent = listOf(r); meta.append(s); }
   const { subs, text } = parseNotes(r.notes);
   const open = expanded.has(r.id);
@@ -1685,6 +1691,8 @@ function renderSheet() {
   if (document.activeElement !== $("sDate")) $("sDate").value = d ? dayKey(d) : "";
   if (document.activeElement !== $("sTime")) $("sTime").value = d && hasTime(r) ? pad(d.getHours()) + ":" + pad(d.getMinutes()) : "";
   $("sNoTime").style.display = d && hasTime(r) ? "" : "none";
+  $("sHeavy").classList.toggle("on", !!r.heavy);
+  $("sHeavy").textContent = r.heavy ? "✓ Pesante" : "Pesante";
   // categories
   buildCatPicker($("sCats"), listOf(r), name => update(tRef(r.id), { list: name }));
   // repeat
@@ -1813,6 +1821,8 @@ function fitTitle() { const t = $("sTitle"); t.style.height = "auto"; t.style.he
 $("sTitle").addEventListener("input", () => { $("sTitle").value = $("sTitle").value.replace(/\n/g, " "); fitTitle(); });
 $("sTitle").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("sTitle").blur(); } });
 $("sNotes").onchange = flushText;
+// "heavy" flag: a big task; shows an orange "Pesante" tag in the list
+$("sHeavy").onclick = () => { const r = cur(); if (r) update(tRef(r.id), { heavy: r.heavy ? null : true }); };
 $("sDup").onclick = () => {
   const r = cur(); if (!r) return;
   flushText();
