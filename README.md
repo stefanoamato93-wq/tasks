@@ -61,6 +61,7 @@ Shortcuts cannot read a reminder's repeat rule, so repeats are set by hand in th
 31 Oct 2026: the first full import sent dates as Italian text with the title stuck on (`1 nov 2026, 00:00Affitto`); all 184 were rewritten once to `YYYY-MM-DD[THH:MM]`.
 
 ## Changelog
+- v48 (3 Nov 2026): category tiles use each list's own colour; every tile (matrix, Lavoro, Vita, Altri) has the same size, 2 per row, lined up with the matrix.
 - v47 (3 Nov 2026): after adding a task, closing its sheet puts the cursor back in the add box; the sheet always opens scrolled to the top; the 4 Urg/Imp squares have no icons, each has its own colour (red, blue, amber, grey) and a bigger tap area.
 - v46 (3 Nov 2026): lists have a group (Lavoro / Vita) saved in taskApp/lists/{key}/group. A new list asks Lavoro or Vita; the category picker puts it there. Raf 1:1 set to Lavoro. Search clears itself when you tap anywhere outside the search box, results or the open task.
 - v45 (3 Nov 2026): computer shortcuts on the open task sheet (also right after adding) or on the bulk selection: Shift + "+" = +1 day, Shift + "-" = −1 day, Shift + Canc (or Backspace) = delete. All with "Annulla". Italian layout handled (Shift gives `*` / `_`). Ignored while typing in notes, search, add box or sub-tasks.

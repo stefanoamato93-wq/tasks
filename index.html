@@ -190,17 +190,18 @@
 .catBtn.cell .ic { font-size:18px; line-height:1; }
 .catBtn.cell .act { font-weight:600; font-size:14px; }
 .catBtn.cell .sub { font-size:11px; opacity:.75; }
-  /* every category is a same-size, easy-to-tap tile (overrides the rules above) */
-  .catRow { display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:8px; }
-  .catBtn { display:flex; padding:10px 12px; min-height:46px; font-size:15px; gap:8px; }
-  .catBtn.cell { display:flex; min-height:64px; padding:10px 12px; justify-content:center; }
-  /* 4 matrix squares: no icons, each its own tinted colour; the chosen one is filled solid */
-  .catMatrix .catBtn.cell { border:2px solid var(--q); border-left-width:2px; color:var(--text, #eee);
-    background:color-mix(in srgb, var(--q) 22%, var(--card)); }
-  .catMatrix .catBtn.cell .act { font-size:16px; color:var(--q); }
-  .catMatrix .catBtn.cell.on { background:var(--q); border-color:var(--q); color:#fff; }
-  .catMatrix .catBtn.cell.on .act { color:#fff; }
-  .catBtn.cell .ic { font-size:15px; }
+  /* every category (Lavoro, matrix, Vita, Altri) is the SAME size tile, 2 per row, tinted with
+     its own category colour; the chosen one is filled solid (overrides the rules above) */
+  .catMatrix { grid-template-columns:16px 1fr 1fr; gap:8px; }
+  .catRow { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding-left:24px; }   /* 16px axis + 8px gap: lines up with the matrix */
+  .catBtn, .catBtn.cell { display:flex; height:58px; min-height:0; padding:6px 12px; gap:8px; font-size:15px; line-height:1.25;
+    border:2px solid var(--c); border-radius:10px; color:var(--text);
+    background:color-mix(in srgb, var(--c) 20%, var(--card)); overflow:hidden; }
+  .catBtn.cell { justify-content:center; gap:1px; }
+  .catBtn .dot { display:none; }
+  .catBtn.cell .act { font-size:15px; }
+  .catBtn.cell .sub { font-size:11px; opacity:.8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .catBtn.on, .catBtn.cell.on { background:var(--c); border-color:var(--c); color:#fff; }
 
   /* bulk selection */
   body.selecting ul.tasks > li .rowInner .ring { opacity:.35; pointer-events:none; }
@@ -276,7 +277,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v47</span>
+      <span class="ver">v48</span>
       <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
@@ -882,10 +883,10 @@ function openMove(id) {
 // Category picker used by the editor and by "Sposta": Lavoro (with the
 // urgent/important lists as a 2x2 matrix) and Vita; lists not mapped go in Altri.
 const CAT_WORK_TOP = ["Startup Routines"];
-// [list, tile colour, action] - each square has its own fixed colour so the 4 are easy to tell apart
+// [list, action] - tiles use each list's own colour
 const CAT_MATRIX = [
-  ["Urg / Imp", "#e5484d", "Fai ora"], ["Imp / Not Urg", "#3e8ef7", "Pianifica"],
-  ["Urg / Not Imp", "#f5a524", "Delega"], ["Not Imp / Not Urg", "#8b8d98", "Dopo"]
+  ["Urg / Imp", "Fai ora"], ["Imp / Not Urg", "Pianifica"],
+  ["Urg / Not Imp", "Delega"], ["Not Imp / Not Urg", "Dopo"]
 ];
 const CAT_WORK_END = ["Awaiting", "End"];
 const CAT_LIFE = ["Start of Day", "Todo", "House", "End of Day"];
@@ -913,9 +914,9 @@ function buildCatPicker(box, cur, onPick) {
   if (cells.length) {
     const m = document.createElement("div"); m.className = "catMatrix";
     m.innerHTML = '<span></span><span class="ax">Urgente</span><span class="ax">Non urgente</span><span class="ax side">Importante</span>';
-    const cell = ([n, col, act]) => {
+    const cell = ([n, act]) => {
       if (!names.includes(n)) { const s = document.createElement("span"); return s; }
-      const b = btn(n, "cell"); b.style.setProperty("--q", col);
+      const b = btn(n, "cell");
       b.innerHTML = `<span class="act">${act}</span><span class="sub">${esc(n)}</span>`; return b;
     };
     m.append(cell(CAT_MATRIX[0]), cell(CAT_MATRIX[1]));
