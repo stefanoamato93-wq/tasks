@@ -24,7 +24,8 @@
   /* computer: the lists menu follows you while the tasks scroll */
   @media (min-width:701px) {
     body { zoom:.8; }   /* computer: smaller text, harder to read from a distance */
-    nav { position:sticky; top:14px; align-self:flex-start; max-height:calc(100vh - 28px); overflow-y:auto; }
+    /* 125vh = full screen height, because body zoom .8 shrinks vh too */
+    nav { position:sticky; top:14px; align-self:flex-start; max-height:calc(125vh - 36px); overflow-y:auto; }
   }
   main { flex:1; min-width:0; }
   header { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
@@ -290,7 +291,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v50</span>
+      <span class="ver">v51</span>
       <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
