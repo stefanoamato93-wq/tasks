@@ -243,6 +243,14 @@
   .dueLabel.late { color:var(--late); }
   #sSubs li { display:flex; align-items:center; gap:10px; padding:3px 0; }
   #sSubs li .x { border:0; background:none; color:var(--muted); padding:2px 6px; }
+/* sub-task drag handle; drop a task onto a task; phone drag ghost */
+#sSubs li .grip { color:var(--muted); font-size:18px; padding:4px 6px; cursor:grab; touch-action:none; user-select:none; flex-shrink:0; }
+#sSubs li.subDrag { position:relative; z-index:3; background:var(--card2); border-radius:8px; opacity:.9; }
+ul.tasks > li.dropOn .rowInner { box-shadow:inset 0 0 0 2px var(--accent); background:var(--soft); }
+ul.tasks > li { -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
+.dragGhost { position:fixed; z-index:50; list-style:none; pointer-events:none; opacity:.85; background:var(--card2);
+  border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.6); overflow:hidden; }
+ul.tasks > li.dragging { opacity:.4; }
   .actions { display:flex; gap:8px; margin-top:18px; }
   .actions .sp { flex:1; }
   .toast { position:fixed; top:calc(64px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%); background:#ececee; color:#1c1c1e; padding:10px 14px; border-radius:10px; font-size:14px; z-index:30; box-shadow:0 6px 24px rgba(0,0,0,.6); white-space:nowrap; max-width:calc(100vw - 24px); overflow:hidden; text-overflow:ellipsis; }   /* top: always in sight, even on a long list */
@@ -291,7 +299,7 @@
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v51</span>
+      <span class="ver">v52</span>
       <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
@@ -955,7 +963,7 @@ function buildCatPicker(box, cur, onPick) {
     const cell = ([n, act]) => {
       if (!names.includes(n)) { const s = document.createElement("span"); return s; }
       const b = btn(n, "cell");
-      b.innerHTML = `<span class="act">${act}</span><span class="sub">${esc(n)}</span>`; return b;
+      b.innerHTML = `<span class="act">${esc(n)}</span>`; return b;     // just the list name (e.g. "Urg / Imp")
     };
     m.append(cell(CAT_MATRIX[0]), cell(CAT_MATRIX[1]));
     const side2 = document.createElement("span"); side2.className = "ax side"; side2.textContent = "Non importante";
@@ -1235,16 +1243,87 @@ function row(r, opts = {}) {
   visibleIds.add(r.id);
   if (sel.has(r.id)) li.classList.add("sel");
   li.onclick = () => {
+    if (taskDragJustEnded) return;
     if (selMode) { sel.has(r.id) ? sel.delete(r.id) : sel.add(r.id); li.classList.toggle("sel", sel.has(r.id)); updateBulkBar(); return; }
     if (li.classList.contains("swiped")) { closeSwiped(); return; }
     openSheet(r.id);
   };
   if (!opts.future) {
+    li.dataset.tid = r.id;
     li.draggable = true;
     li.addEventListener("dragstart", e => { dragId = r.id; li.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", r.id); });
     li.addEventListener("dragend", () => { li.classList.remove("dragging"); setTimeout(() => dragId = null, 50); });
+    // computer: drop a task onto another task -> ask to make it a sub-task
+    li.addEventListener("dragover", e => { if (!dragId || dragId === r.id) return; e.preventDefault(); e.stopPropagation(); li.classList.add("dropOn"); });
+    li.addEventListener("dragleave", () => li.classList.remove("dropOn"));
+    li.addEventListener("drop", e => {
+      if (!dragId || dragId === r.id) return;
+      e.preventDefault(); e.stopPropagation(); li.classList.remove("dropOn");
+      const from = dragId; dragId = null; makeSubtask(from, r.id);
+    });
+    addTouchDrag(li, r.id);
   }
   return li;
+}
+
+// make task "fromId" a sub-task of task "toId" (asks first, undo for 3 s)
+function makeSubtask(fromId, toId) {
+  const a = rows.find(x => x.id === fromId), b = rows.find(x => x.id === toId);
+  if (!a || !b || a.id === b.id) return;
+  if (!confirm("Rendere \"" + (a.title || "") + "\" un sotto-task di \"" + (b.title || "") + "\"?")) return;
+  const p = parseNotes(b.notes);
+  p.subs.push({ ok: false, t: a.title || "(vuoto)" });
+  parseNotes(a.notes).subs.forEach(s => p.subs.push(s));   // its own sub-tasks come along
+  const oldNotes = b.notes || null;
+  const { id: _, ...copy } = a;
+  update(tRef(b.id), { notes: buildNotes(p.text, p.subs) });
+  remove(tRef(a.id));
+  toast("Sotto-task creato", "Annulla", () => { update(tRef(b.id), { notes: oldNotes }); update(tRef(a.id), copy); });
+}
+
+// phone: hold a task ~0.5 s, then drag it onto another task
+let taskDragJustEnded = false;
+function addTouchDrag(li, id) {
+  let timer = null, sx = 0, sy = 0, ghost = null, over = null;
+  const clear = () => { clearTimeout(timer); timer = null; };
+  const onMove = e => {
+    if (!ghost) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    ghost.style.transform = `translate(${t.clientX - sx}px, ${t.clientY - sy}px)`;
+    ghost.style.visibility = "hidden";
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    ghost.style.visibility = "";
+    const tgt = el && el.closest("li[data-tid]");
+    const ok = tgt && tgt.dataset.tid !== id ? tgt : null;
+    if (ok !== over) { if (over) over.classList.remove("dropOn"); over = ok; if (over) over.classList.add("dropOn"); }
+  };
+  const end = () => {
+    clear();
+    document.removeEventListener("touchmove", onMove, { passive: false });
+    if (!ghost) return;
+    ghost.remove(); ghost = null; li.classList.remove("dragging");
+    taskDragJustEnded = true; setTimeout(() => taskDragJustEnded = false, 400);
+    if (over) { over.classList.remove("dropOn"); const to = over.dataset.tid; over = null; setTimeout(() => makeSubtask(id, to), 50); }
+  };
+  li.addEventListener("touchstart", e => {
+    if (e.touches.length !== 1 || selMode || e.target.closest(".ring, button")) return;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    clear();
+    timer = setTimeout(() => {
+      timer = null; rowSwipeUsed = true; closeSwiped();
+      const rc = li.getBoundingClientRect();
+      ghost = li.cloneNode(true); ghost.className = "dragGhost";
+      Object.assign(ghost.style, { left: rc.left + "px", top: rc.top + "px", width: rc.width + "px" });
+      document.body.append(ghost); li.classList.add("dragging");
+      document.addEventListener("touchmove", onMove, { passive: false });
+    }, 500);
+  }, { passive: true });
+  li.addEventListener("touchmove", e => {
+    if (timer && (Math.abs(e.touches[0].clientX - sx) > 8 || Math.abs(e.touches[0].clientY - sy) > 8)) clear();
+  }, { passive: true });
+  li.addEventListener("touchend", end);
+  li.addEventListener("touchcancel", end);
 }
 
 function toggle(r, checked) {
@@ -1646,12 +1725,34 @@ function renderSheet() {
     t.onchange = () => { p.subs[i].t = t.value; saveSubs(p); };
     const x = document.createElement("button"); x.className = "x"; x.textContent = "✕";
     x.onclick = () => { p.subs.splice(i, 1); saveSubs(p); };
-    // move a sub-task up or down
-    const mv = (txt, dir) => { const b = document.createElement("button"); b.className = "x"; b.textContent = txt; b.title = dir < 0 ? "Su" : "Giù";
-      const j = i + dir; if (j < 0 || j >= p.subs.length) b.style.visibility = "hidden";
-      b.onclick = () => { if (j < 0 || j >= p.subs.length) return; [p.subs[i], p.subs[j]] = [p.subs[j], p.subs[i]]; saveSubs(p); }; return b; };
-    li.append(t, mv("↑", -1), mv("↓", +1), x); ul.append(li);
+    // drag the ⠿ handle up or down to reorder (mouse and finger)
+    const h = document.createElement("span"); h.className = "grip"; h.textContent = "⠿"; h.title = "Trascina per spostare";
+    h.addEventListener("pointerdown", e => subDragStart(e, li, i, p));
+    li.append(h, t, x); ul.append(li);
   });
+}
+function subDragStart(e, li, from, p) {
+  e.preventDefault();
+  const ul = $("sSubs"), items = [...ul.children];
+  const y0 = e.clientY; let to = from;
+  li.classList.add("subDrag");
+  const h = e.currentTarget; h.setPointerCapture(e.pointerId);
+  const move = ev => {
+    li.style.transform = `translateY(${ev.clientY - y0}px)`;
+    to = from;
+    items.forEach((it, k) => {
+      if (it === li) return;
+      const rc = it.getBoundingClientRect(), mid = rc.top + rc.height / 2;
+      if (k > from && ev.clientY > mid) to = Math.max(to, k);
+      if (k < from && ev.clientY < mid) to = Math.min(to, k);
+    });
+  };
+  const up = () => {
+    h.removeEventListener("pointermove", move); h.removeEventListener("pointerup", up); h.removeEventListener("pointercancel", up);
+    li.classList.remove("subDrag"); li.style.transform = "";
+    if (to !== from) { const [s] = p.subs.splice(from, 1); p.subs.splice(to, 0, s); saveSubs(p); }
+  };
+  h.addEventListener("pointermove", move); h.addEventListener("pointerup", up); h.addEventListener("pointercancel", up);
 }
 function saveSubs(p) { const r = cur(); update(tRef(r.id), { notes: buildNotes($("sNotes").value, p.subs) }); }
 function setDue(d, keepTime) {
