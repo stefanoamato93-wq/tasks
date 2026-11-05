@@ -301,7 +301,7 @@ ul.tasks > li.dragging { opacity:.4; }
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v54</span>
+      <span class="ver">v55</span>
       <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
@@ -730,11 +730,11 @@ onValue(tasksRef, snap => {
     }
   }
   loaded = true;
-  renderAll();
+  renderFromDb();
   saveCache();
 }, e => { $("listView").innerHTML = `<div class="empty">Errore: ${e.message}</div>`; });
-onValue(ref(db, "taskApp/lists"), snap => { listMeta = snap.val() || {}; renderAll(); saveCache(); }, () => {});
-onValue(ref(db, "taskApp/settings"), snap => { settings = snap.val() || {}; renderAll(); saveCache(); }, () => {});
+onValue(ref(db, "taskApp/lists"), snap => { listMeta = snap.val() || {}; renderFromDb(); saveCache(); }, () => {});
+onValue(ref(db, "taskApp/settings"), snap => { settings = snap.val() || {}; renderFromDb(); saveCache(); }, () => {});
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const isSpecial = v => v.startsWith("@");
@@ -758,6 +758,17 @@ function setView(v) {
 let selMode = false;
 const sel = new Set();          // selected task ids (bulk mode)
 let visibleIds = new Set();     // tasks drawn in the current view ("Tutti" button)
+// Data from the server must not redraw the page while a finger/mouse is pressed:
+// redrawing between press and release loses the click (one click needed twice, e.g. right after adding a task).
+var pressing = false, renderPending = false;     // var: safe even if the server answers before this line runs
+function renderFromDb() { if (pressing) renderPending = true; else renderAll(); }
+window.addEventListener("pointerdown", () => { pressing = true; }, true);
+const pressEnd = () => {
+  pressing = false;
+  if (renderPending) { renderPending = false; setTimeout(() => { if (!pressing) renderAll(); else renderPending = true; }, 60); }
+};
+window.addEventListener("pointerup", pressEnd, true);
+window.addEventListener("pointercancel", pressEnd, true);
 function renderAll() {
   visibleIds = new Set();
   if (typeof updateBulkBar === "function") setTimeout(updateBulkBar, 0);
@@ -941,9 +952,16 @@ const CAT_MATRIX = [
 ];
 const CAT_WORK_END = ["Awaiting", "End"];
 const CAT_LIFE = ["Start of Day", "Todo", "House", "End of Day"];
-function buildCatPicker(box, cur, onPick) {
-  box.innerHTML = "";
+function buildCatPicker(box, cur, onPick, keep) {
   const names = allLists(), used = new Set();
+  // keep = true (task sheet): do not rebuild the tiles if nothing they show changed.
+  // A rebuild between mouse down and mouse up loses the click (e.g. the server's echo just after adding a task).
+  if (keep) {
+    const k = cur + "|" + names.map(n => n + ":" + colorOf(n)).join(",") + "|" + JSON.stringify(listMeta);
+    if (box.dataset.k === k) return;
+    box.dataset.k = k;
+  } else delete box.dataset.k;
+  box.innerHTML = "";
   const btn = (name, cls) => {
     used.add(name);
     const b = document.createElement("button"); b.type = "button";
@@ -1694,7 +1712,7 @@ function renderSheet() {
   $("sHeavy").classList.toggle("on", !!r.heavy);
   $("sHeavy").textContent = r.heavy ? "✓ Pesante" : "Pesante";
   // categories
-  buildCatPicker($("sCats"), listOf(r), name => update(tRef(r.id), { list: name }));
+  buildCatPicker($("sCats"), listOf(r), name => { if (sheetId) update(tRef(sheetId), { list: name }); }, true);
   // repeat
   const rep = r.repeat || {};
   const preset = isWorkdays(rep) ? "workdays" : rep.freq && (rep.every || 1) === 1 ? rep.freq : (rep.freq ? "custom" : "");
