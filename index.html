@@ -77,7 +77,7 @@
   /* phone: no add box at the top; the + button opens it above the keyboard */
   @media (max-width:700px) {
     form.add { display:none; }
-    body.adding form.add { display:flex; position:fixed; left:12px; right:12px; bottom:calc(76px + env(safe-area-inset-bottom)); z-index:12; margin:0; background:var(--card2); padding:8px; border-radius:14px; box-shadow:0 6px 24px rgba(0,0,0,.6); }
+    body.adding form.add { display:flex; position:fixed; left:12px; right:12px; top:calc(10px + env(safe-area-inset-top)); z-index:12; margin:0; background:var(--card2); padding:8px; border-radius:14px; box-shadow:0 6px 24px rgba(0,0,0,.6); }
   }
 
   /* sidebar */
@@ -279,6 +279,10 @@ ul.tasks > li.dragging { opacity:.4; }
     .bottom { display:block; position:fixed; right:16px; bottom:calc(16px + env(safe-area-inset-bottom)); z-index:8; }
     .bottom .bar { display:none; }
     .bottom .plus { width:52px; height:52px; border-radius:50%; font-size:26px; padding:0; background:var(--accent); color:#fff; border:0; box-shadow:0 4px 16px rgba(0,0,0,.5); }
+    /* phone: the task sheet fills the whole screen, like the big sheet on the computer */
+    #sheetBack { align-items:stretch; }
+    #sheet { height:100%; max-height:none; border-radius:0; padding-top:calc(16px + env(safe-area-inset-top)); }
+    .sheetHead { top:calc(-16px - env(safe-area-inset-top)); margin-top:calc(-16px - env(safe-area-inset-top)); padding-top:calc(12px + env(safe-area-inset-top)); }
     .cal .day { min-height:54px; }
     .cal .ev, .cal .more { display:none; }
     .cal .dots { display:flex; }
@@ -301,7 +305,7 @@ ul.tasks > li.dragging { opacity:.4; }
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v55</span>
+      <span class="ver">v56</span>
       <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
@@ -1687,7 +1691,8 @@ function openSheet(id) {
 }
 function closeSheet() {
   flushText(); sheetId = null; $("sheetBack").classList.add("hidden");
-  // just added a task: put the cursor back in the add box, ready for the next one
+  // just added a task: on the computer the cursor goes back to the add box; on the phone, back to the list
+  if (backToAdd && matchMedia("(max-width:700px)").matches) backToAdd = false;
   if (backToAdd) { backToAdd = false; document.body.classList.add("adding"); $("newTitle").focus(); }
 }
 function flushText() {

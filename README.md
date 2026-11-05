@@ -61,6 +61,7 @@ Shortcuts cannot read a reminder's repeat rule, so repeats are set by hand in th
 31 Oct 2026: the first full import sent dates as Italian text with the title stuck on (`1 nov 2026, 00:00Affitto`); all 184 were rewritten once to `YYYY-MM-DD[THH:MM]`.
 
 ## Changelog
+- v56 (5 Nov 2026): phone: the add box shows at the top of the screen (not low near the + button); the task sheet fills the whole screen; after adding, closing the sheet goes back to the list (computer still returns to the add box).
 - v54 (3 Nov 2026): 'Pesante' (heavy) flag on a task (field heavy: true); button in the editor under the date, orange tag in the list.
 - v53 (3 Nov 2026): inside every group (category, day, search) tasks are sorted A-Z by name.
 - v52 (3 Nov 2026): sub-tasks reorder by dragging the handle (mouse and finger); drop a task onto another (phone: hold 0.5 s, then drag) to make it a sub-task, after a confirm, with undo; matrix tiles show only the list name; Enter in the sub-task box never closes the task page.
