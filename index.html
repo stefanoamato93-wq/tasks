@@ -305,7 +305,7 @@ ul.tasks > li.dragging { opacity:.4; }
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v57</span>
+      <span class="ver">v58</span>
       <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
@@ -1669,7 +1669,15 @@ $("plusBtn").onclick = () => {
 // tapping "Aggiungi" must not take focus from the box (or it would close before saving)
 document.querySelector("#addForm button").addEventListener("pointerdown", e => e.preventDefault());
 $("newTitle").addEventListener("blur", () => setTimeout(() => {
-  if (document.activeElement !== $("newTitle")) document.body.classList.remove("adding");
+  if (document.activeElement === $("newTitle")) return;
+  // phone: the keyboard's ✓ only closes the keyboard, so save the typed task (Urg / Imp, today)
+  const title = $("newTitle").value.trim();
+  if (title && matchMedia("(max-width:700px)").matches) {
+    const newRef = push(tasksRef, { title, done: false, source: "web", created: serverTimestamp(), list: defaultList(), due: todayStr() });
+    $("newTitle").value = "";
+    toast("Aggiunto: " + title, "Annulla", () => update(rootRef, { ["tasks/" + newRef.key]: null }));
+  }
+  document.body.classList.remove("adding");
 }, 150));
 // computer: N focuses the add box
 document.addEventListener("keydown", e => {
