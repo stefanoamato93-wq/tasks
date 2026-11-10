@@ -61,6 +61,7 @@ Shortcuts cannot read a reminder's repeat rule, so repeats are set by hand in th
 31 Oct 2026: the first full import sent dates as Italian text with the title stuck on (`1 nov 2026, 00:00Affitto`); all 184 were rewritten once to `YYYY-MM-DD[THH:MM]`.
 
 ## Changelog
+- v58 (10 Nov 2026): phone: tapping the keyboard's check (it only closes the keyboard) now saves the typed task to Urg / Imp, due today, with an Annulla toast; before, the text was lost.
 - v57 (10 Nov 2026): phone: a new task always lands in Urg / Imp, due today, from any view or day.
 - v56 (5 Nov 2026): phone: the add box shows at the top of the screen (not low near the + button); the task sheet fills the whole screen; after adding, closing the sheet goes back to the list (computer still returns to the add box).
 - v54 (3 Nov 2026): 'Pesante' (heavy) flag on a task (field heavy: true); button in the editor under the date, orange tag in the list.
