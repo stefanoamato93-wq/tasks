@@ -40,7 +40,7 @@ The node is open in the RTDB rules: `"taskApp": { ".read": true, ".write": true 
 - **Delete:** red ✕ on every task deletes at once; the toast offers "Annulla" for 3 s. Same for the sheet's Elimina and for "Elimina tutti" in Completati (that one still asks once, since it is bulk).
 - **Oggi / Tutti** are grouped by category (name + colour dot + count), in the user's order. **A single category** is grouped by day (In ritardo, then one header per day, then Senza data). Group headers collapse (state in `localStorage.tasksCollapsed`).
 - **Search** box (🔍) searches title, notes and category across all tasks, open and completed, grouped by category.
-- **Quick add** goes to the default category (`settings.defaultList`, falls back to `1 Urg And Imp`; no UI to change it) due today; inside a category it goes to that category; in Oggi it uses the shown day; in the calendar the selected day. **Phone:** no box at the top, the round + opens it above the keyboard and it stays open for several tasks (closes on tap elsewhere). **Computer:** box stays at the top for speed; press **N** to jump into it.
+- **Quick add** goes to the default category (`settings.defaultList`, falls back to `1 Urg And Imp`; no UI to change it) due today; inside a category it goes to that category; in Oggi it uses the shown day; in the calendar the selected day. **Phone:** no box at the top, the round + opens it above the keyboard and it stays open for several tasks (closes on tap elsewhere). **Computer:** box stays at the top for speed; press **N** to jump into it. On the phone a new task always goes to the default category (Urg / Imp) due today, whatever view or day is open (v57).
 - **Task sheet** (tap a task; every change saves at once): title; date with Oggi / Domani / Nessuna and −/+1 giorno, settimana, mese, plus date/time pickers; category chips; repeat chips (Mai, ogni giorno/settimana/mese/anno) plus "Personalizza: ogni N unità"; sub-tasks (tick, rename, remove, add); notes; Duplica; Elimina.
 - **Drag & drop** (computer): drag a task onto a category in the sidebar, onto a category header, or onto a calendar day.
 - **Categories:** "✏️ Modifica elenchi" in the sidebar: ↑/↓ reorder, ✎ rename (updates every task in it, and the default if it was the default), tap the dot to change colour (centred swatch picker + "Altro colore"; the native picker alone opened off-screen), + Nuovo.
@@ -61,6 +61,7 @@ Shortcuts cannot read a reminder's repeat rule, so repeats are set by hand in th
 31 Oct 2026: the first full import sent dates as Italian text with the title stuck on (`1 nov 2026, 00:00Affitto`); all 184 were rewritten once to `YYYY-MM-DD[THH:MM]`.
 
 ## Changelog
+- v57 (10 Nov 2026): phone: a new task always lands in Urg / Imp, due today, from any view or day.
 - v56 (5 Nov 2026): phone: the add box shows at the top of the screen (not low near the + button); the task sheet fills the whole screen; after adding, closing the sheet goes back to the list (computer still returns to the add box).
 - v54 (3 Nov 2026): 'Pesante' (heavy) flag on a task (field heavy: true); button in the editor under the date, orange tag in the list.
 - v53 (3 Nov 2026): inside every group (category, day, search) tasks are sorted A-Z by name.

@@ -305,7 +305,7 @@ ul.tasks > li.dragging { opacity:.4; }
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v56</span>
+      <span class="ver">v57</span>
       <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
@@ -1532,10 +1532,12 @@ $("addForm").onsubmit = e => {
   e.preventDefault();
   const title = $("newTitle").value.trim();
   if (!title) return;
+  // phone: a new task always goes to Urg / Imp, due today, whatever view is open
+  const phone = matchMedia("(max-width:700px)").matches;
   const newRef = push(tasksRef, {
     title, done: false, source: "web", created: serverTimestamp(),
-    list: isSpecial(view) ? defaultList() : view,
-    due: view === "@calendar" && calSel ? calSel : view === "@today" ? curDay() : view === "@tomorrow" ? tomorrowStr() : view === "@nextmon" ? nextMonStr() : todayStr()
+    list: phone || isSpecial(view) ? defaultList() : view,
+    due: phone ? todayStr() : view === "@calendar" && calSel ? calSel : view === "@today" ? curDay() : view === "@tomorrow" ? tomorrowStr() : view === "@nextmon" ? nextMonStr() : todayStr()
   });
   $("newTitle").value = "";
   // open the new task's sheet (date, category, repeat…); when it closes, the cursor goes back to the add box
