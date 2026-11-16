@@ -105,10 +105,13 @@
   ul.tasks > li { position:relative; overflow:hidden; border-top:1px solid var(--line); cursor:pointer; }
   ul.tasks > li.empty { padding:16px; }
   .rowInner { position:relative; z-index:1; display:flex; align-items:flex-start; gap:12px; padding:10px 12px; background:var(--card); transition:transform .2s; }
-  .swipeDel { position:absolute; top:0; right:0; bottom:0; left:0; border:0; border-radius:0; background:#8a2d29; color:#fff; font-weight:600; display:none; text-align:right; padding:0 18px; transition:background .15s; }
+  .swipeDel { position:absolute; top:0; right:0; bottom:0; left:0; border:0; border-radius:0; background:#8a2d29; color:#fff; font-weight:600; display:none; text-align:right; padding:0 10px; transition:background .15s; }
   li.swiped .swipeDel, li.armed .swipeDel { background:var(--danger); }
-  .swipeMove { position:absolute; top:0; bottom:0; right:96px; width:96px; z-index:0; border:0; border-radius:0; background:var(--accent); color:#fff; font-weight:600; display:none; }
-  li.armed .swipeMove { visibility:hidden; }
+  /* phone swipe shows 3 buttons, 72px each: +1 | Sposta | Elimina */
+  .swipeMove { position:absolute; top:0; bottom:0; right:72px; width:72px; z-index:0; border:0; border-radius:0; background:var(--accent); color:#fff; font-weight:600; display:none; }
+  .swipePlus { position:absolute; top:0; bottom:0; right:144px; width:72px; z-index:0; border:0; border-radius:0; background:#2f7d4f; color:#fff; font-weight:600; display:none; }
+  li.armed .swipeMove, li.armed .swipePlus { visibility:hidden; }
+  .mv.p1 { font-size:12px; font-weight:600; }
   .mv { border:0; background:none; color:var(--muted); font-size:15px; padding:0 4px; flex-shrink:0; opacity:.7; }
   .mv:hover { opacity:1; color:var(--text); }
   ul.tasks.drop { outline:2px dashed var(--accent); border-radius:6px; }
@@ -117,7 +120,7 @@
   .moveList button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
   @media (max-width:700px) {
     .rowInner .del, .rowInner .mv { display:none; }      /* phone: no one-tap ✕, swipe left instead */
-    .swipeDel, .swipeMove { display:block; }
+    .swipeDel, .swipeMove, .swipePlus { display:block; }
   }
   ul.tasks > li:first-child { border-top:0; }
   ul.tasks > li.dragging { opacity:.4; }
@@ -305,7 +308,7 @@ ul.tasks > li.dragging { opacity:.4; }
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v58</span>
+      <span class="ver">v59</span>
       <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
@@ -946,6 +949,19 @@ function openMove(id) {
   buildCatPicker($("moveList"), listOf(r), name => { $("moveBack").classList.add("hidden"); moveTaskToList(id, name); });
   $("moveBack").classList.remove("hidden");
 }
+// "+1" on a row (computer) or in the swipe (phone): move the task to tomorrow.
+// Work tasks (Lavoro lists) go to the next working day instead, so Friday -> Monday.
+function isWorkList(name) {
+  return CAT_WORK_TOP.includes(name) || CAT_MATRIX.some(c => c[0] === name) || CAT_WORK_END.includes(name) || metaOf(name).group === "work";
+}
+function moveTomorrow(id) {
+  const r = rows.find(x => x.id === id); if (!r) return;
+  closeSwiped();
+  const t = startOfDay(new Date());
+  do { t.setDate(t.getDate() + 1); } while (isWorkList(listOf(r)) && (t.getDay() === 0 || t.getDay() === 6));
+  const due = keepTime(r, t), old = r.due === undefined ? null : r.due;
+  update(tRef(id), { due }).then(() => toast("+1 → " + fmtDue({ due }), "Annulla", () => update(tRef(id), { due: old })));
+}
 // Category picker used by the editor and by "Sposta": Lavoro (with the
 // urgent/important lists as a 2x2 matrix) and Vita; lists not mapped go in Altri.
 const CAT_WORK_TOP = ["Startup Routines"];
@@ -1262,13 +1278,17 @@ function row(r, opts = {}) {
     mv.onclick = e => { e.stopPropagation(); openMove(r.id); };
     const del = document.createElement("button"); del.className = "del"; del.title = "Elimina"; del.textContent = "✕";
     del.onclick = e => { e.stopPropagation(); deleteTask(r.id); };
-    inner.append(mv, del);
+    const p1 = document.createElement("button"); p1.className = "mv p1"; p1.title = "Domani (lavoro: prossimo giorno lavorativo)"; p1.textContent = "+1";
+    p1.onclick = e => { e.stopPropagation(); moveTomorrow(r.id); };
+    inner.append(p1, mv, del);
     li.addEventListener("contextmenu", e => { e.preventDefault(); openMove(r.id); });
     const sw = document.createElement("button"); sw.className = "swipeDel"; sw.textContent = "Elimina";
     sw.onclick = e => { e.stopPropagation(); deleteTask(r.id); };
     const sm = document.createElement("button"); sm.className = "swipeMove"; sm.textContent = "Sposta";
     sm.onclick = e => { e.stopPropagation(); openMove(r.id); };
-    li.append(sw, sm);
+    const sp1 = document.createElement("button"); sp1.className = "swipePlus"; sp1.textContent = "+1";
+    sp1.onclick = e => { e.stopPropagation(); moveTomorrow(r.id); };
+    li.append(sw, sm, sp1);
     addRowSwipe(li, inner, () => deleteTask(r.id));
   }
   visibleIds.add(r.id);
@@ -1398,7 +1418,7 @@ function addRowSwipe(li, inner, onFull) {
     }
     if (!horiz) return;
     rowSwipeUsed = true;
-    const base = li.classList.contains("swiped") ? -192 : 0;
+    const base = li.classList.contains("swiped") ? -216 : 0;
     const full = li.offsetWidth * 0.6;                      // past this point, letting go deletes
     dx = Math.min(0, base + mx);
     const nowArmed = -dx > full;
@@ -1419,7 +1439,7 @@ function addRowSwipe(li, inner, onFull) {
       setTimeout(onFull, 180);
       return;
     }
-    if (dx < -50) { li.classList.add("swiped"); inner.style.transform = "translateX(-192px)"; openRow = li; }
+    if (dx < -50) { li.classList.add("swiped"); inner.style.transform = "translateX(-216px)"; openRow = li; }
     else { li.classList.remove("swiped"); inner.style.transform = ""; if (openRow === li) openRow = null; }
   });
 }
