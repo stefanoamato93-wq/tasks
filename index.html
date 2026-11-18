@@ -308,7 +308,7 @@ ul.tasks > li.dragging { opacity:.4; }
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v59</span>
+      <span class="ver">v60</span>
       <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
@@ -351,7 +351,10 @@ ul.tasks > li.dragging { opacity:.4; }
     <div id="doneView" class="hidden">
       <div class="doneBar">
         <span id="doneInfo"></span>
-        <button class="danger" id="clearDone">🗑 Elimina tutti</button>
+        <span style="display:flex;gap:6px">
+          <button class="danger" id="clearOld">🗑 Più vecchi di 1 settimana</button>
+          <button class="danger" id="clearDone">🗑 Elimina tutti</button>
+        </span>
       </div>
       <ul class="tasks" id="doneList"></ul>
     </div>
@@ -1200,6 +1203,7 @@ function renderDone() {
   const done = rows.filter(r => r.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
   $("doneInfo").textContent = done.length + " completati";
   $("clearDone").disabled = !done.length;
+  $("clearOld").disabled = !done.some(isOldDone);
   const ul = $("doneList"); ul.innerHTML = "";
   if (!done.length) ul.innerHTML = `<li class="empty">Nessun task completato</li>`;
   done.forEach(r => ul.append(row(r)));
@@ -1210,6 +1214,15 @@ $("clearDone").onclick = () => {
   const upd = {}; done.forEach(r => upd["tasks/" + r.id] = null);
   const back = {}; done.forEach(r => { const { id, ...c } = r; back["tasks/" + id] = c; });
   update(rootRef, upd).then(() => toast("Eliminati " + done.length, "Annulla", () => update(rootRef, back)));
+};
+// completed more than 7 days ago (tasks with no completion time count as old)
+function isOldDone(r) { return r.done && (!r.doneAt || r.doneAt < Date.now() - 7 * 864e5); }
+$("clearOld").onclick = () => {
+  const old = rows.filter(isOldDone);
+  if (!old.length || !confirm("Eliminare definitivamente " + old.length + " task completati più di 1 settimana fa?")) return;
+  const upd = {}; old.forEach(r => upd["tasks/" + r.id] = null);
+  const back = {}; old.forEach(r => { const { id, ...c } = r; back["tasks/" + id] = c; });
+  update(rootRef, upd).then(() => toast("Eliminati " + old.length, "Annulla", () => update(rootRef, back)));
 };
 
 function ring(checked, color, small, onToggle) {

@@ -46,7 +46,7 @@ The node is open in the RTDB rules: `"taskApp": { ".read": true, ".write": true 
 - **Drag & drop** (computer): drag a task onto a category in the sidebar, onto a category header, or onto a calendar day.
 - **Categories:** "✏️ Modifica elenchi" in the sidebar: ↑/↓ reorder, ✎ rename (updates every task in it, and the default if it was the default), tap the dot to change colour (centred swatch picker + "Altro colore"; the native picker alone opened off-screen), + Nuovo.
 - **Calendar** opens on the current week: a rolling 6-week grid from this Monday; ‹ › (or swipe) move 4 weeks; past days are dimmed.
-- **Completed** tasks are hidden from every view except "Completati", which has "Elimina tutti".
+- **Completed** tasks are hidden from every view except "Completati", which has "Elimina tutti" and "Più vecchi di 1 settimana" (deletes only tasks completed over 7 days ago, or with no completion time; asks once, 3 s Annulla).
 - **Repeating tasks:** ticking moves the due date to the next occurrence (skipping past dates) and resets sub-tasks. The calendar also shows future repeats (tick disabled there).
 - **Sub-tasks** show as "☑ 2/5" on the task; tap to open them inline with round ticks and a "+ sotto-task" field.
 
@@ -62,6 +62,7 @@ Shortcuts cannot read a reminder's repeat rule, so repeats are set by hand in th
 31 Oct 2026: the first full import sent dates as Italian text with the title stuck on (`1 nov 2026, 00:00Affitto`); all 184 were rewritten once to `YYYY-MM-DD[THH:MM]`.
 
 ## Changelog
+- v60 (18 Nov 2026): Completati gets a "Più vecchi di 1 settimana" button that deletes only tasks completed more than 7 days ago.
 - v59 (16 Nov 2026): "+1" shortcut on each task (computer row button, phone swipe) moves it to tomorrow; work tasks go to the next working day (no weekends).
 - v58 (10 Nov 2026): phone: tapping the keyboard's check (it only closes the keyboard) now saves the typed task to Urg / Imp, due today, with an Annulla toast; before, the text was lost.
 - v57 (10 Nov 2026): phone: a new task always lands in Urg / Imp, due today, from any view or day.
