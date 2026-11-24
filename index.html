@@ -309,7 +309,7 @@ ul.tasks > li.dragging { opacity:.4; }
     <header>
       <button class="ghost menuBtn" id="menuBtn" title="Elenchi">&#9776;</button>
       <h1 id="viewTitle">Tasks</h1>
-      <span class="ver">v61</span>
+      <span class="ver">v62</span>
       <button class="ghost" id="selBtn" title="Seleziona più task">&#9745;</button>
       <button class="ghost searchBtn" id="searchBtn" title="Cerca">&#128269;</button>
     </header>
@@ -971,7 +971,10 @@ function isWorkList(name) {
 function moveTomorrow(id) {
   const r = rows.find(x => x.id === id); if (!r) return;
   closeSwiped();
-  const t = startOfDay(new Date());
+  // count from the task's own day when it is later than today (Domani page -> day after),
+  // otherwise from today (late or undated tasks go to tomorrow)
+  const today = startOfDay(new Date()), dd = dueDate(r);
+  const t = dd && startOfDayRaw(dd) > today ? startOfDayRaw(dd) : today;
   do { t.setDate(t.getDate() + 1); } while (isWorkList(listOf(r)) && (t.getDay() === 0 || t.getDay() === 6));
   const due = keepTime(r, t), old = r.due === undefined ? null : r.due;
   update(tRef(id), { due }).then(() => toast("+1 → " + fmtDue({ due }), "Annulla", () => update(tRef(id), { due: old })));

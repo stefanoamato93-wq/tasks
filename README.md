@@ -1,4 +1,4 @@
-# Tasks
+﻿# Tasks
 
 My own task list, shaped like GoodTask: categories (lists), due dates, repeating tasks, sub-tasks. Dark mode only. Add tasks by voice with Siri on iPhone; they appear live on the web app (Windows + iPhone).
 
@@ -42,7 +42,7 @@ The node is open in the RTDB rules: `"taskApp": { ".read": true, ".write": true 
 - **Search** box (🔍) searches title, notes and category across all tasks, open and completed, grouped by category.
 - **Quick add** goes to the default category (`settings.defaultList`, falls back to `1 Urg And Imp`; no UI to change it) due today; inside a category it goes to that category; in Oggi it uses the shown day; in the calendar the selected day. **Phone:** no box at the top, the round + opens it above the keyboard and it stays open for several tasks (closes on tap elsewhere). **Computer:** box stays at the top for speed; press **N** to jump into it. On the phone a new task always goes to the default category (Urg / Imp) due today, whatever view or day is open (v57).
 - **Task sheet** (tap a task; every change saves at once): title; date with Oggi / Domani / Nessuna and −/+1 giorno, settimana, mese, plus date/time pickers; category chips; repeat chips (Mai, ogni giorno/settimana/mese/anno) plus "Personalizza: ogni N unità"; sub-tasks (tick, rename, remove, add); notes; Duplica; Elimina.
-- **+1 shortcut** (`moveTomorrow`): computer has a "+1" button on every row; phone swipe left shows **+1 | Sposta | Elimina** (72 px each, 216 px open). It sets the due date to tomorrow from today (keeps the time). Work tasks (Lavoro lists: Startup Routines, the 4 matrix lists, Awaiting, End, and lists with `group: "work"`, see `isWorkList`) skip Saturday and Sunday, so Friday -> Monday. Annulla toast for 3 s.
+- **+1 shortcut** (`moveTomorrow`): computer has a "+1" button on every row; phone swipe left shows **+1 | Sposta | Elimina** (72 px each, 216 px open). It moves the task one day on from its own date when that date is in the future (Domani -> day after tomorrow, and so on), otherwise to tomorrow from today (late or undated tasks); keeps the time. Work tasks (Lavoro lists: Startup Routines, the 4 matrix lists, Awaiting, End, and lists with `group: "work"`, see `isWorkList`) skip Saturday and Sunday, so Friday -> Monday. Annulla toast for 3 s.
 - **Drag & drop** (computer): drag a task onto a category in the sidebar, onto a category header, or onto a calendar day.
 - **Categories:** "✏️ Modifica elenchi" in the sidebar: ↑/↓ reorder, ✎ rename (updates every task in it, and the default if it was the default), tap the dot to change colour (centred swatch picker + "Altro colore"; the native picker alone opened off-screen), + Nuovo.
 - **Calendar** opens on the current week: a rolling 6-week grid from this Monday; ‹ › (or swipe) move 4 weeks; past days are dimmed.
@@ -62,6 +62,7 @@ Shortcuts cannot read a reminder's repeat rule, so repeats are set by hand in th
 31 Oct 2026: the first full import sent dates as Italian text with the title stuck on (`1 nov 2026, 00:00Affitto`); all 184 were rewritten once to `YYYY-MM-DD[THH:MM]`.
 
 ## Changelog
+- v62 (24 Nov 2026): "+1" counts from the task's own date when it is in the future (Domani page -> day after tomorrow); late tasks still go to tomorrow.
 - v61 (18 Nov 2026): the old-completed delete gets an age picker (1 day to 1 year) and shows how many tasks it will delete.
 - v60 (18 Nov 2026): Completati gets a "Più vecchi di 1 settimana" button that deletes only tasks completed more than 7 days ago.
 - v59 (16 Nov 2026): "+1" shortcut on each task (computer row button, phone swipe) moves it to tomorrow; work tasks go to the next working day (no weekends).
