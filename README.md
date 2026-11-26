@@ -62,7 +62,7 @@ Shortcuts cannot read a reminder's repeat rule, so repeats are set by hand in th
 31 Oct 2026: the first full import sent dates as Italian text with the title stuck on (`1 nov 2026, 00:00Affitto`); all 184 were rewritten once to `YYYY-MM-DD[THH:MM]`.
 
 ## Changelog
-- v65 (26 Nov 2026): on future repeats, +1D / +1W line up with the other rows (hidden placeholder where the delete button sits).
+- v65 (26 Nov 2026): on future repeats, +1D / +1W line up with the other rows (hidden placeholder where the delete button sits). Header version label (`<span class="ver">` in index.html) bumped to v65; bump it on every version.
 - v64 (26 Nov 2026): future repeats (grey copies of repeating tasks on later days) also show +1D / +1W on the computer; they move the real task.
 - v63 (26 Nov 2026): computer rows get +1D and +1W buttons; +1W replaces the category button (right-click still moves category).
 - v62 (24 Nov 2026): "+1" counts from the task's own date when it is in the future (Domani page -> day after tomorrow); late tasks still go to tomorrow.
