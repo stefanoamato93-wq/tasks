@@ -1338,6 +1338,13 @@ function row(r, opts = {}) {
     sp1.onclick = e => { e.stopPropagation(); moveTomorrow(r.id); };
     li.append(sw, sm, sp1);
     addRowSwipe(li, inner, () => deleteTask(r.id));
+  } else {
+    // future repeat (computer): +1D / +1W too; they move the real task
+    const p1 = document.createElement("button"); p1.className = "mv p1"; p1.title = "Domani (sposta il task reale)"; p1.textContent = "+1D";
+    p1.onclick = e => { e.stopPropagation(); moveTomorrow(r.id); };
+    const pw = document.createElement("button"); pw.className = "mv p1"; pw.title = "Tra una settimana (sposta il task reale)"; pw.textContent = "+1W";
+    pw.onclick = e => { e.stopPropagation(); moveNextWeek(r.id); };
+    inner.append(p1, pw);
   }
   visibleIds.add(r.id);
   if (sel.has(r.id)) li.classList.add("sel");
