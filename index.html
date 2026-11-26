@@ -1344,7 +1344,10 @@ function row(r, opts = {}) {
     p1.onclick = e => { e.stopPropagation(); moveTomorrow(r.id); };
     const pw = document.createElement("button"); pw.className = "mv p1"; pw.title = "Tra una settimana (sposta il task reale)"; pw.textContent = "+1W";
     pw.onclick = e => { e.stopPropagation(); moveNextWeek(r.id); };
-    inner.append(p1, pw);
+    // invisible ✕ placeholder so +1D / +1W line up with the other rows
+    const ph = document.createElement("button"); ph.className = "del"; ph.textContent = "✕";
+    ph.style.visibility = "hidden"; ph.tabIndex = -1; ph.setAttribute("aria-hidden", "true");
+    inner.append(p1, pw, ph);
   }
   visibleIds.add(r.id);
   if (sel.has(r.id)) li.classList.add("sel");
