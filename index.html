@@ -979,6 +979,18 @@ function moveTomorrow(id) {
   const due = keepTime(r, t), old = r.due === undefined ? null : r.due;
   update(tRef(id), { due }).then(() => toast("+1 → " + fmtDue({ due }), "Annulla", () => update(tRef(id), { due: old })));
 }
+// "+1W" on a row (computer): move the task one week on, counting from its own day
+// when that is later than today, otherwise from today. Work tasks never land on a weekend.
+function moveNextWeek(id) {
+  const r = rows.find(x => x.id === id); if (!r) return;
+  closeSwiped();
+  const today = startOfDay(new Date()), dd = dueDate(r);
+  const t = dd && startOfDayRaw(dd) > today ? startOfDayRaw(dd) : today;
+  t.setDate(t.getDate() + 7);
+  while (isWorkList(listOf(r)) && (t.getDay() === 0 || t.getDay() === 6)) t.setDate(t.getDate() + 1);
+  const due = keepTime(r, t), old = r.due === undefined ? null : r.due;
+  update(tRef(id), { due }).then(() => toast("+1W  " + fmtDue({ due }), "Annulla", () => update(tRef(id), { due: old })));
+}
 // Category picker used by the editor and by "Sposta": Lavoro (with the
 // urgent/important lists as a 2x2 matrix) and Vita; lists not mapped go in Altri.
 const CAT_WORK_TOP = ["Startup Routines"];
@@ -1311,9 +1323,12 @@ function row(r, opts = {}) {
     mv.onclick = e => { e.stopPropagation(); openMove(r.id); };
     const del = document.createElement("button"); del.className = "del"; del.title = "Elimina"; del.textContent = "✕";
     del.onclick = e => { e.stopPropagation(); deleteTask(r.id); };
-    const p1 = document.createElement("button"); p1.className = "mv p1"; p1.title = "Domani (lavoro: prossimo giorno lavorativo)"; p1.textContent = "+1";
+    const p1 = document.createElement("button"); p1.className = "mv p1"; p1.title = "Domani (lavoro: prossimo giorno lavorativo)"; p1.textContent = "+1D";
     p1.onclick = e => { e.stopPropagation(); moveTomorrow(r.id); };
-    inner.append(p1, mv, del);
+    // computer: +1W replaces the category button (category move stays on right-click)
+    const pw = document.createElement("button"); pw.className = "mv p1"; pw.title = "Tra una settimana"; pw.textContent = "+1W";
+    pw.onclick = e => { e.stopPropagation(); moveNextWeek(r.id); };
+    inner.append(p1, pw, del);
     li.addEventListener("contextmenu", e => { e.preventDefault(); openMove(r.id); });
     const sw = document.createElement("button"); sw.className = "swipeDel"; sw.textContent = "Elimina";
     sw.onclick = e => { e.stopPropagation(); deleteTask(r.id); };
